@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuroScan v42 — Оцифровка мозга</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#060810;--panel:#0b1221;--border:rgba(50,150,255,0.13);--b2:rgba(50,150,255,0.24);--accent:#3ab8ff;--text:#ccd8f0;--dim:rgba(200,216,240,0.4)}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Courier New',Consolas,monospace}
+body{display:flex;flex-direction:column}
+.hdr{height:46px;flex-shrink:0;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;padding:0 12px;overflow:hidden}
+.logo{font-size:13px;font-weight:700;letter-spacing:.18em;color:var(--accent);white-space:nowrap}
+.logo em{font-style:normal;color:var(--dim);font-weight:400;font-size:11px}
+.sep{width:1px;height:22px;background:var(--b2);flex-shrink:0}
+.hm{display:flex;flex-direction:column;min-width:48px}
+.hm-l{font-size:7px;letter-spacing:.1em;color:var(--dim);margin-bottom:1px}
+.hm-v{font-size:11px;color:var(--accent);font-weight:700}
+.spacer{flex:1}
+.hbtns{display:flex;gap:4px;flex-wrap:nowrap}
+.hb{padding:4px 7px;font-size:7.5px;letter-spacing:.06em;cursor:pointer;background:rgba(50,180,255,.07);border:1px solid var(--border);color:var(--dim);transition:.18s;border-radius:2px;user-select:none;white-space:nowrap}
+.hb:hover{background:rgba(50,180,255,.15);color:var(--accent);border-color:var(--b2)}
+.hb.on{background:rgba(50,180,255,.2);color:var(--accent);border-color:var(--b2)}
+.hb.st{border-color:rgba(100,220,150,.2);color:rgba(100,220,180,.65)}
+.hb.st.on{background:rgba(80,200,130,.15);color:#50e8a0;border-color:rgba(80,200,130,.5)}
+.hb.net{border-color:rgba(255,200,80,.2);color:rgba(255,200,120,.65)}
+.hb.net.on{background:rgba(255,180,50,.15);color:#ffcc50;border-color:rgba(255,180,50,.5)}
+
+.main{display:flex;flex:1;min-height:0;overflow:hidden}
+.sl{width:202px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sl-hd,.sr-hd{padding:6px 10px;font-size:7.5px;letter-spacing:.12em;color:var(--dim);background:rgba(0,0,0,.3);border-bottom:1px solid var(--border);flex-shrink:0}
+.rlist{flex:1;overflow-y:auto;padding:2px 0}
+.rlist::-webkit-scrollbar{width:3px}
+.rlist::-webkit-scrollbar-thumb{background:rgba(50,180,255,.2)}
+.ri{display:flex;align-items:center;gap:6px;padding:4px 10px;font-size:9px;cursor:pointer;transition:.15s}
+.ri:hover{background:rgba(50,180,255,.07)}
+.ri.sel{background:rgba(50,180,255,.12);color:var(--accent)}
+.rdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.rname{flex:1;font-size:8.5px}
+.rpct{font-size:7.5px;color:var(--dim)}
+.r-bar{width:24px;height:2px;background:rgba(50,180,255,.1);border-radius:1px;overflow:hidden;margin-top:1px}
+.r-bar-fill{height:100%;background:rgba(50,180,255,.6);transition:.6s}
+
+.cw{flex:1;position:relative;min-width:0;background:#050508;overflow:hidden}
+.cw::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:linear-gradient(rgba(50,180,255,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(50,180,255,.012) 1px,transparent 1px);background-size:38px 38px}
+#c{display:block;width:100%;height:100%;z-index:2}
+#lc2{position:absolute;inset:0;z-index:8;pointer-events:none}
+.lc{position:absolute;inset:0;pointer-events:none;z-index:10}
+.lbl{position:absolute;font-size:7.5px;letter-spacing:.06em;white-space:nowrap;color:rgba(200,225,255,.6);background:rgba(5,10,20,.75);padding:1px 5px;border-left:2px solid rgba(50,180,255,.3);transform:translateY(-50%);pointer-events:none;transition:.2s}
+.lbl.sel{color:var(--accent);border-color:var(--accent);background:rgba(5,15,38,.92)}
+
+.state-badge{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:15;pointer-events:none;font-size:8.5px;letter-spacing:.14em;padding:3px 12px;border-radius:2px}
+.clip-badge{position:absolute;top:36px;left:50%;transform:translateX(-50%);background:rgba(255,180,50,.12);border:1px solid rgba(255,180,50,.4);color:rgba(255,200,80,.9);font-size:8px;padding:2px 10px;z-index:15;pointer-events:none;display:none;letter-spacing:.1em}
+.clip-badge.vis{display:block}
+.net-badge{position:absolute;top:8px;right:8px;z-index:15;pointer-events:none;font-size:8px;padding:3px 8px;background:rgba(255,200,50,.12);border:1px solid rgba(255,200,50,.3);color:#ffcc50;display:none;letter-spacing:.1em}
+.net-badge.vis{display:block}
+
+.sr{width:186px;flex-shrink:0;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+.sr::-webkit-scrollbar{width:3px}
+.sr::-webkit-scrollbar-thumb{background:rgba(50,180,255,.2)}
+.mb{padding:8px 10px;border-bottom:1px solid var(--border)}
+.mb-t{font-size:7px;letter-spacing:.1em;color:var(--dim);margin-bottom:4px}
+.mv{font-size:18px;font-weight:700;color:var(--accent);line-height:1}
+.mu{font-size:7.5px;color:var(--dim);margin-top:1px}
+.mch{height:22px;display:flex;align-items:flex-end;gap:2px;margin-top:4px}
+.mbar{flex:1;background:rgba(50,180,255,.28);border-radius:1px;min-height:2px;transition:.4s}
+.eeg-wrap{padding:8px 10px;border-bottom:1px solid var(--border)}
+#eeg{display:block;width:100%;height:52px;background:rgba(0,0,0,.4);border:1px solid rgba(50,180,255,.1)}
+.agrid{padding:7px 10px;border-bottom:1px solid var(--border)}
+.acell{width:7px;height:7px;border-radius:1px;background:rgba(50,180,255,.09);display:inline-block;margin:1px}
+.net-panel{padding:8px 10px;border-bottom:1px solid var(--border)}
+.net-item{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:8px;cursor:pointer;transition:.15s}
+.net-item:hover{color:var(--text)}
+.net-item.active{color:#ffcc50}
+.net-dot{width:8px;height:8px;border-radius:50%}
+
+.ip{position:absolute;bottom:10px;left:212px;background:rgba(5,9,22,.97);border:1px solid var(--b2);padding:12px;width:230px;z-index:20;display:none}
+.ip.vis{display:block}
+.ip h3{font-size:10px;color:var(--accent);letter-spacing:.1em;margin-bottom:8px}
+.ipr{font-size:8px;color:var(--dim);display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(50,180,255,.06)}
+.ipr span{color:var(--text)}
+.iclose{position:absolute;top:7px;right:8px;cursor:pointer;font-size:15px;color:var(--dim);background:none;border:none}
+.iclose:hover{color:var(--text)}
+.ip-act-bar{height:4px;background:rgba(50,180,255,.15);border-radius:2px;margin-top:8px;overflow:hidden}
+.ip-act-fill{height:100%;background:var(--accent);transition:.8s}
+
+.sbar{height:32px;flex-shrink:0;background:var(--panel);border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;padding:0 12px;font-size:8px;color:var(--dim)}
+.dot-live{width:6px;height:6px;border-radius:50%;background:#3dff88;box-shadow:0 0 6px #3dff88;animation:dp 2s ease-in-out infinite}
+@keyframes dp{0%,100%{opacity:1}50%{opacity:.35}}
+.sprog{flex:1;height:2px;background:rgba(50,180,255,.1);border-radius:1px;overflow:hidden}
+.spbar{height:100%;background:linear-gradient(90deg,var(--accent),#88eeff);width:0;transition:.5s}
+.fps{position:absolute;bottom:5px;right:6px;font-size:7.5px;color:rgba(200,216,240,.22);z-index:15;pointer-events:none}
+.tt{position:fixed;background:rgba(4,9,20,.93);border:1px solid var(--b2);padding:4px 10px;font-size:8.5px;color:var(--text);pointer-events:none;z-index:200;display:none;white-space:nowrap}
+/* fMRI colorbar */
+.fmri-bar{position:absolute;bottom:16px;right:200px;z-index:15;pointer-events:none;display:none;flex-direction:column;align-items:center;gap:3px}
+.fmri-bar.vis{display:flex}
+.fmri-grad{width:12px;height:80px;border-radius:2px;background:linear-gradient(to bottom,#ffff00,#ff8800,#ff0000,#0000ff)}
+.fmri-ticks{font-size:7px;color:var(--dim);display:flex;flex-direction:column;justify-content:space-between;height:80px}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="logo">NEUROSCAN <em>v42</em></div>
+  <div class="sep"></div>
+  <div class="hm"><div class="hm-l">НЕЙРОНЫ</div><div class="hm-v">86B</div></div>
+  <div class="hm"><div class="hm-l">СИНАПСЫ</div><div class="hm-v" id="hv-syn">—</div></div>
+  <div class="hm"><div class="hm-l">АКТИВНОСТЬ</div><div class="hm-v" id="hv-act">—</div></div>
+  <div class="hm"><div class="hm-l">ЗДОРОВЬЕ</div><div class="hm-v" id="hv-hlth">—</div></div>
+  <div class="sep"></div>
+  <div class="hb st on" id="bAwake">БОДРСТВ.</div>
+  <div class="hb st" id="bSleep">СОН</div>
+  <div class="hb st" id="bMedit">МЕДИТ.</div>
+  <div class="hb st" id="bStress">СТРЕСС</div>
+  <div class="spacer"></div>
+  <div class="hbtns">
+    <div class="hb on"  id="bAnat">АНАТОМИЯ</div>
+    <div class="hb"     id="bFunc">ФУНКЦИИ</div>
+    <div class="hb"     id="bFmri">fMRI</div>
+    <div class="hb"     id="bConn">DTI ТРАКТЫ</div>
+    <div class="hb"     id="bLbl">МЕТКИ</div>
+    <div class="hb on"  id="bRot">↺</div>
+    <div class="hb"     id="bWire">КАРКАС</div>
+    <div class="hb"     id="bSag">⊟ SAG</div>
+    <div class="hb"     id="bAxl">⊠ AXL</div>
+    <div class="hb"     id="bCor">⊡ COR</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="sl">
+    <div class="sl-hd">РЕГИОНЫ (<span id="region-count">30</span>)</div>
+    <div class="rlist" id="rlist"></div>
+  </div>
+
+  <div class="cw" id="cw">
+    <canvas id="c"></canvas>
+    <canvas id="lc2"></canvas>
+    <div class="lc" id="lc"></div>
+    <div class="fps">FPS:<span id="fps">60</span></div>
+    <div class="state-badge" id="state-badge"></div>
+    <div class="clip-badge" id="clip-badge"></div>
+    <div class="net-badge" id="net-badge"></div>
+    <!-- fMRI colorbar -->
+    <div class="fmri-bar" id="fmri-bar">
+      <div style="font-size:7px;color:var(--dim)">BOLD</div>
+      <div style="display:flex;gap:4px">
+        <div class="fmri-grad"></div>
+        <div class="fmri-ticks"><span>+3σ</span><span>0</span><span>-3σ</span></div>
+      </div>
+    </div>
+    <div class="ip" id="ip">
+      <button class="iclose" id="iclose">×</button>
+      <h3 id="ip-name"></h3>
+      <div id="ip-body"></div>
+      <div class="ip-act-bar"><div class="ip-act-fill" id="ip-act-fill"></div></div>
+    </div>
+  </div>
+
+  <div class="sr">
+    <div class="sr-hd">НЕЙРОННЫЕ МЕТРИКИ</div>
+    <div class="mb">
+      <div class="mb-t">НЕЙРОННАЯ АКТИВНОСТЬ</div>
+      <div class="mv" id="mv-act">74</div><div class="mu">% базовой линии</div>
+      <div class="mch" id="mch-act"></div>
+    </div>
+    <div class="eeg-wrap">
+      <div class="mb-t">ЭЭГ — <span id="eeg-band">АЛЬФА</span></div>
+      <canvas id="eeg"></canvas>
+    </div>
+    <div class="mb">
+      <div class="mb-t">ПЕРФУЗИЯ (CBF)</div>
+      <div class="mv" id="mv-cbf">54</div><div class="mu">мл/100г/мин</div>
+      <div class="mch" id="mch-cbf"></div>
+    </div>
+    <div class="mb">
+      <div class="mb-t">BOLD-СИГНАЛ (fMRI)</div>
+      <div class="mv" id="mv-bold">0.8</div><div class="mu">% изм. сигнала</div>
+      <div class="mch" id="mch-bold"></div>
+    </div>
+    <div class="mb">
+      <div class="mb-t">FA ТРАКТОГРАФИЯ</div>
+      <div class="mv" id="mv-fa">91</div><div class="mu">% целостность</div>
+      <div class="mch" id="mch-fa"></div>
+    </div>
+    <div class="net-panel">
+      <div class="mb-t" style="margin-bottom:6px">ФУНКЦИОНАЛЬНЫЕ СЕТИ</div>
+      <div id="net-list"></div>
+    </div>
+    <div class="agrid">
+      <div class="mb-t" style="margin-bottom:5px">ЗОНАЛЬНАЯ АКТИВНОСТЬ</div>
+      <div id="agrid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="sbar">
+  <div class="dot-live"></div>
+  <span>СКАНИРОВАНИЕ</span>
+  <span style="color:var(--b2)">│</span>
+  <span id="s-state">СОСТОЯНИЕ: БОДРСТВОВАНИЕ</span>
+  <span style="color:var(--b2)">│</span>
+  <span id="s-mode">РЕЖИМ: АНАТОМИЯ</span>
+  <div class="sprog"><div class="spbar" id="spbar"></div></div>
+  <span id="s-pct">0%</span>
+  <span style="color:var(--b2)">│</span>
+  <span id="s-clk">--:--:--</span>
+</div>
+<div class="tt" id="tt"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════════════════
+// BRAIN STATES
+// ══════════════════════════════════════════════════════════
+const STATES={
+  awake: {name:'БОДРСТВОВАНИЕ',eegHz:10,eegAmp:1.0,actBase:.72,color:'#50e8a0',bg:0x050508,bands:'Альфа 8–13 Гц'},
+  sleep: {name:'СОН (дельта)', eegHz:2, eegAmp:1.8,actBase:.22,color:'#7080ff',bg:0x050820,bands:'Дельта 0.5–4 Гц'},
+  medit: {name:'МЕДИТАЦИЯ',    eegHz:7, eegAmp:.8, actBase:.55,color:'#e8c050',bg:0x070a05,bands:'Тета 4–8 Гц'},
+  stress:{name:'СТРЕСС',       eegHz:22,eegAmp:.55,actBase:.88,color:'#ff6060',bg:0x090508,bands:'Бета/Гамма 15–40 Гц'},
+};
+let curState='awake';
+
+// ══════════════════════════════════════════════════════════
+// FUNCTIONAL NETWORKS
+// ══════════════════════════════════════════════════════════
+const NETWORKS={
+  dmn:{  name:'ДСС (Default Mode)',      color:'#ff8c42', nodes:['prefrontal','parietal-l','parietal-r','hippocampus-l','hippocampus-r','cingulate']},
+  smn:{  name:'СДВ (Сенсомоторная)',     color:'#42d4f4', nodes:['motor-l','motor-r','somatosens-l','somatosens-r','cerebellum']},
+  van:{  name:'ВСВ (Вентр. Внимание)',   color:'#f442c5', nodes:['temporal-l','temporal-r','frontal-l','frontal-r','insula-l','insula-r']},
+  fpn:{  name:'ФПС (Фронто-теменная)',   color:'#a8f542', nodes:['prefrontal','parietal-l','parietal-r','frontal-l','frontal-r']},
+  visual:{name:'Зрительная сеть',        color:'#ff4242', nodes:['occipital','v2-l','v2-r']},
+};
+let activeNet=null;
+
+// ══════════════════════════════════════════════════════════
+// 30 REGIONS
+// ══════════════════════════════════════════════════════════
+const REGIONS=[
+  // Core lobes
+  {key:'frontal-l',    name:'Лобная (Л)',          color:'#4fc3f7',hex:0x4fc3f7,pos:[-0.75,0.65,1.05],ba:'BA4,6,8-10,44,45',role:'Зона Брока, двигат. кора',fn:'Речь, планирование'},
+  {key:'frontal-r',    name:'Лобная (П)',           color:'#29b6f6',hex:0x29b6f6,pos:[0.75,0.65,1.05], ba:'BA4,6,8-10',      role:'Моторная кора',          fn:'Исполнит. функции'},
+  {key:'parietal-l',   name:'Теменная (Л)',         color:'#81c784',hex:0x81c784,pos:[-0.7,0.85,-0.1], ba:'BA1-3,5,7,39,40', role:'Соматосенсорная кора',   fn:'Тактил. восприятие'},
+  {key:'parietal-r',   name:'Теменная (П)',         color:'#66bb6a',hex:0x66bb6a,pos:[0.7,0.85,-0.1],  ba:'BA1-3,5,7',       role:'Пространств. ориентация',fn:'Тактил. восприятие'},
+  {key:'temporal-l',   name:'Височная (Л)',         color:'#ffb74d',hex:0xffb74d,pos:[-1.1,0.1,0.25],  ba:'BA20-22,38,41,42',role:'Зона Вернике, слух',     fn:'Речь, память'},
+  {key:'temporal-r',   name:'Височная (П)',         color:'#ffa726',hex:0xffa726,pos:[1.1,0.1,0.25],   ba:'BA20-22,38',      role:'Музыкальное восприятие', fn:'Слух, память'},
+  {key:'occipital',    name:'Затылочная (V1)',      color:'#ef5350',hex:0xef5350,pos:[0,0.3,-1.35],    ba:'BA17',            role:'Первичная зрит. кора',   fn:'Обработка зрения'},
+  {key:'cingulate',    name:'Поясная кора',         color:'#ce93d8',hex:0xce93d8,pos:[0,0.95,0.35],    ba:'BA24,25,32,33',   role:'Эмоции, конфликт',       fn:'Аффект. регуляция'},
+  // New: motor & somatosensory
+  {key:'motor-l',      name:'Моторная кора (Л)',    color:'#4dd0e1',hex:0x4dd0e1,pos:[-0.72,0.88,0.42],ba:'BA4',             role:'Первичная двигат. кора', fn:'Произвольное движение'},
+  {key:'motor-r',      name:'Моторная кора (П)',    color:'#26c6da',hex:0x26c6da,pos:[0.72,0.88,0.42], ba:'BA4',             role:'Первичная двигат. кора', fn:'Произвольное движение'},
+  {key:'somatosens-l', name:'Сомат. сенсор. (Л)',  color:'#a5d6a7',hex:0xa5d6a7,pos:[-0.70,0.88,0.25],ba:'BA1,2,3',         role:'Первичная сомат. кора',  fn:'Тактил. обработка'},
+  {key:'somatosens-r', name:'Сомат. сенсор. (П)',  color:'#80c783',hex:0x80c783,pos:[0.70,0.88,0.25], ba:'BA1,2,3',         role:'Первичная сомат. кора',  fn:'Тактил. обработка'},
+  // Insula
+  {key:'insula-l',     name:'Островок (Л)',         color:'#f48fb1',hex:0xf48fb1,pos:[-0.92,0.22,0.32],ba:'BA13',            role:'Интероцепция, боль',     fn:'Висцерал. чувствит.'},
+  {key:'insula-r',     name:'Островок (П)',         color:'#f06292',hex:0xf06292,pos:[0.92,0.22,0.32], ba:'BA13',            role:'Отвращение, эмпатия',    fn:'Висцерал. чувствит.'},
+  // Visual areas
+  {key:'v2-l',         name:'Зрит. ассоц. (В2, Л)',color:'#ff7043',hex:0xff7043,pos:[-0.4,0.28,-1.35],ba:'BA18,19',         role:'Вторичная зрит. кора',   fn:'Цвет, форма, движение'},
+  {key:'v2-r',         name:'Зрит. ассоц. (В2, П)',color:'#ff5722',hex:0xff5722,pos:[0.4,0.28,-1.35],  ba:'BA18,19',         role:'Вторичная зрит. кора',   fn:'Цвет, форма, движение'},
+  // Subcortical
+  {key:'cerebellum',   name:'Мозжечок',             color:'#b39ddb',hex:0xb39ddb,pos:[0,-0.9,-1.2],    ba:'—',               role:'Тонкая моторика, баланс',fn:'Координация движений'},
+  {key:'brainstem',    name:'Ствол мозга',           color:'#ff7043',hex:0xff7043,pos:[0,-1.45,-0.55],  ba:'—',               role:'Дыхание, ЧСС, сон',      fn:'Вегетат. регуляция'},
+  {key:'thalamus',     name:'Таламус',               color:'#26c6da',hex:0x26c6da,pos:[0,0.15,0.0],     ba:'—',               role:'Сенсорное реле',         fn:'Переключатель сигн.'},
+  {key:'hippocampus-l',name:'Гиппокамп (Л)',        color:'#9ccc65',hex:0x9ccc65,pos:[-0.65,-0.15,-0.35],ba:'BA28,34-36',   role:'Долгосрочная память',    fn:'Консолидация памяти'},
+  {key:'hippocampus-r',name:'Гиппокамп (П)',        color:'#7cb342',hex:0x7cb342,pos:[0.65,-0.15,-0.35], ba:'BA28,34-36',   role:'Пространств. карта',     fn:'Консолидация памяти'},
+  {key:'amygdala-l',   name:'Миндалина (Л)',        color:'#ef5350',hex:0xef5350,pos:[-0.68,-0.12,0.35], ba:'—',             role:'Страх, тревога',         fn:'Эмоц. память'},
+  {key:'amygdala-r',   name:'Миндалина (П)',        color:'#e53935',hex:0xe53935,pos:[0.68,-0.12,0.35],  ba:'—',             role:'Эмоц. реакция',          fn:'Эмоц. память'},
+  {key:'basal-ganglia',name:'Базальные ганглии',    color:'#80cbc4',hex:0x80cbc4,pos:[0.25,0.05,0.3],    ba:'—',             role:'Двигат. контроль',       fn:'Подкорковые ядра'},
+  {key:'prefrontal',   name:'Префронтальная',       color:'#80deea',hex:0x80deea,pos:[0,0.75,1.55],      ba:'BA9-12,46,47', role:'Рабочая память, личность',fn:'Высшие когн. функции'},
+  // Angular, supramarginal
+  {key:'angular-l',    name:'Угловая извилина (Л)', color:'#aed581',hex:0xaed581,pos:[-0.8,0.7,-0.25],  ba:'BA39',            role:'Чтение, счёт, язык',     fn:'Мультисенсорная инт.'},
+  {key:'angular-r',    name:'Угловая извилина (П)', color:'#9ccc65',hex:0x9ccc65,pos:[0.8,0.7,-0.25],   ba:'BA39',            role:'Пространств. внимание',  fn:'Мультисенсорная инт.'},
+  {key:'supramarg-l',  name:'Надкраевая (Л)',       color:'#c5e1a5',hex:0xc5e1a5,pos:[-0.85,0.72,0.1],  ba:'BA40',            role:'Фонологич. память',      fn:'Сенсорная интеграция'},
+  {key:'supramarg-r',  name:'Надкраевая (П)',       color:'#aed581',hex:0xaed581,pos:[0.85,0.72,0.1],   ba:'BA40',            role:'Тактильное внимание',    fn:'Сенсорная интеграция'},
+  {key:'sma',          name:'Доп. моторная обл.',   color:'#80d8ff',hex:0x80d8ff,pos:[0,0.9,0.55],      ba:'BA6',             role:'Планирование движений',  fn:'Доп. моторная обл.'},
+];
+
+document.getElementById('region-count').textContent=REGIONS.length;
+
+// ══════════════════════════════════════════════════════════
+// THREE.JS
+// ══════════════════════════════════════════════════════════
+const canvas=document.getElementById('c'),wrap=document.getElementById('cw');
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x050508);
+const camera=new THREE.PerspectiveCamera(42,1,0.1,100);
+camera.position.set(0,0.4,5.8);camera.lookAt(0,0,0);
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.localClippingEnabled=true;
+function resize(){
+  const w=wrap.clientWidth,h=wrap.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
+  const l=document.getElementById('lc2');l.width=w;l.height=h;
+  const e=document.getElementById('eeg');e.width=e.offsetWidth||172;e.height=52;
+}
+resize();window.addEventListener('resize',resize);
+
+// Lights
+scene.add(new THREE.HemisphereLight(0xfff4f0,0x331008,0.5));
+const sun=new THREE.DirectionalLight(0xfff8f0,1.25);sun.position.set(3,5,4);scene.add(sun);
+const fill=new THREE.DirectionalLight(0xc0d8ff,0.42);fill.position.set(-4,0.5,-3);scene.add(fill);
+scene.add(new THREE.PointLight(0xff7040,0.28,18)).position.set(0,-4,-3);
+scene.add(new THREE.DirectionalLight(0xffffff,0.3)).position.set(0,8,0);
+
+// ══════════════════════════════════════════════════════════
+// NOISE
+// ══════════════════════════════════════════════════════════
+const fract=x=>x-Math.floor(x);
+const h3=(x,y,z)=>fract(Math.sin(x*127.1+y*311.7+z*74.7)*43758.5453);
+function vn(x,y,z){
+  const ix=Math.floor(x),iy=Math.floor(y),iz=Math.floor(z),fx=x-ix,fy=y-iy,fz=z-iz,ux=fx*fx*(3-2*fx),uy=fy*fy*(3-2*fy),uz=fz*fz*(3-2*fz);
+  return h3(ix,iy,iz)*(1-ux)*(1-uy)*(1-uz)+h3(ix+1,iy,iz)*ux*(1-uy)*(1-uz)+h3(ix,iy+1,iz)*(1-ux)*uy*(1-uz)+h3(ix+1,iy+1,iz)*ux*uy*(1-uz)+h3(ix,iy,iz+1)*(1-ux)*(1-uy)*uz+h3(ix+1,iy,iz+1)*ux*(1-uy)*uz+h3(ix,iy+1,iz+1)*(1-ux)*uy*uz+h3(ix+1,iy+1,iz+1)*ux*uy*uz;
+}
+function fbm(x,y,z,oct){let v=0,a=0.5,f=1.9;for(let i=0;i<oct;i++){v+=a*(vn(x*f,y*f,z*f)*2-1);a*=0.52;f*=2.05;}return v;}
+
+// ══════════════════════════════════════════════════════════
+// BRAIN GEOMETRY (inherited from v41)
+// ══════════════════════════════════════════════════════════
+function makeHemi(side){
+  const geo=new THREE.SphereGeometry(1,120,88);
+  const a=geo.attributes.position.array,cnt=geo.attributes.position.count;
+  const cols=new Float32Array(cnt*3);const seed=side*0.31;
+  for(let i=0;i<cnt;i++){
+    let x=a[i*3],y=a[i*3+1],z=a[i*3+2];
+    x*=0.93;y*=0.70;z*=1.10;y+=z*(-0.10);
+    const len=Math.sqrt(x*x+y*y+z*z)||1e-6;
+    const nx=x/len,ny=y/len,nz=z/len;
+    const g=fbm(nx*3.0+seed,ny*3.3,nz*2.8,4),gf=fbm(nx*7.5+seed*1.7,ny*8,nz*7,3)*0.3;
+    const d=(g+gf)*0.135;x+=nx*d;y+=ny*d;z+=nz*d;
+    const t=Math.max(0,Math.min(1,(d+0.085)/0.17));
+    cols[i*3]=0.38+t*0.50;cols[i*3+1]=0.18+t*0.42;cols[i*3+2]=0.13+t*0.37;
+    const med=Math.exp(-x*x*30)*0.20;x*=(1-med*0.82);y-=med*0.07;
+    const mf=Math.exp(-x*x*30);cols[i*3]*=(1-mf*0.5);cols[i*3+1]*=(1-mf*0.5);cols[i*3+2]*=(1-mf*0.5);
+    const sY=(y+0.20)/0.30,sZ=(z-0.10)/0.55,sX=(Math.abs(x)-0.36)/0.48;
+    const sylv=Math.max(0,1-sY*sY)*Math.max(0,1-sZ*sZ)*Math.max(0,Math.min(1,sX));
+    if(sylv>0.01){const dd=sylv*0.20;y-=dd;x-=Math.sign(x)*dd*0.45;cols[i*3]*=(1-sylv*0.7);cols[i*3+1]*=(1-sylv*0.7);cols[i*3+2]*=(1-sylv*0.7);}
+    const csD=(z-0.22)/0.10,csH=Math.max(0,(y-0.20)/0.68),cs=Math.exp(-csD*csD)*csH;
+    z-=cs*0.10;cols[i*3]*=(1-cs*0.35);cols[i*3+1]*=(1-cs*0.35);cols[i*3+2]*=(1-cs*0.35);
+    const posD=(z+0.52)/0.10,posH=Math.max(0,(y-0.1)/0.7),pos=Math.exp(-posD*posD)*posH;
+    z-=pos*0.08;y-=pos*0.04;cols[i*3]*=(1-pos*0.3);cols[i*3+1]*=(1-pos*0.3);cols[i*3+2]*=(1-pos*0.3);
+    if(z<-0.65&&Math.abs(x)<0.5){const calc=Math.exp(-Math.pow(z+0.75,2)*25)*Math.max(0,0.5-Math.abs(x));y-=calc*0.08;cols[i*3]*=(1-calc*0.4);cols[i*3+1]*=(1-calc*0.4);cols[i*3+2]*=(1-calc*0.4);}
+    x+=side*0.86;a[i*3]=x;a[i*3+1]=y;a[i*3+2]=z;
+    cols[i*3]=Math.max(0,Math.min(1,cols[i*3]));cols[i*3+1]=Math.max(0,Math.min(1,cols[i*3+1]));cols[i*3+2]=Math.max(0,Math.min(1,cols[i*3+2]));
+  }
+  geo.setAttribute('color',new THREE.BufferAttribute(cols,3));geo.attributes.position.needsUpdate=true;geo.computeVertexNormals();
+  return geo;
+}
+function makeCer(){
+  const geo=new THREE.SphereGeometry(0.52,72,52);const a=geo.attributes.position.array,cnt=geo.attributes.position.count;
+  const cols=new Float32Array(cnt*3);
+  for(let i=0;i<cnt;i++){let x=a[i*3],y=a[i*3+1],z=a[i*3+2];x*=1.35;y*=0.68;const len=Math.sqrt(x*x+y*y+z*z)||1e-6;const fn=fbm(x/len*9,y/len*5,z/len*9,3)*0.065+fbm(x/len*18,y/len*12,z/len*18,2)*0.025;a[i*3]=x+(x/len)*fn;a[i*3+1]=y+(y/len)*fn;a[i*3+2]=z+(z/len)*fn;const t2=Math.max(0,Math.min(1,(fn+0.05)/0.10));cols[i*3]=0.40+t2*0.38;cols[i*3+1]=0.20+t2*0.30;cols[i*3+2]=0.15+t2*0.28;}
+  geo.setAttribute('color',new THREE.BufferAttribute(cols,3));geo.attributes.position.needsUpdate=true;geo.computeVertexNormals();return geo;
+}
+const cMat=(em)=>new THREE.MeshPhongMaterial({vertexColors:true,shininess:20,specular:new THREE.Color(0xffe0d0),emissive:em||0x000000,emissiveIntensity:0});
+const brainGrp=new THREE.Group();scene.add(brainGrp);
+const matL=cMat(),matR=cMat();
+brainGrp.add(new THREE.Mesh(makeHemi(-1),matL),new THREE.Mesh(makeHemi(1),matR));
+const cerM=new THREE.Mesh(makeCer(),cMat());cerM.position.set(0,-0.85,-1.22);cerM.rotation.x=0.18;brainGrp.add(cerM);
+const bsM=new THREE.Mesh(new THREE.CylinderGeometry(.15,.11,.88,14),new THREE.MeshPhongMaterial({color:0xb87060,shininess:15,specular:0xffe0d0}));
+bsM.position.set(0,-1.32,-.62);bsM.rotation.x=.32;brainGrp.add(bsM);
+const ccM=new THREE.Mesh(new THREE.TorusGeometry(.52,.042,8,40,Math.PI),new THREE.MeshPhongMaterial({color:0xd0b8a8,shininess:12,specular:0xffe0d0}));
+ccM.position.set(0,.52,.12);ccM.rotation.x=-.28;ccM.rotation.z=Math.PI;brainGrp.add(ccM);
+// Ventricles
+const vMat=new THREE.MeshPhongMaterial({color:0x88ccff,transparent:true,opacity:.5,shininess:60,specular:0xffffff});
+[[-.38,.35,-.1],[.38,.35,-.1]].forEach(p=>{const m=new THREE.Mesh(new THREE.SphereGeometry(.28,24,18),vMat.clone());m.geometry.scale(1.6,.8,2.2);m.position.set(...p);brainGrp.add(m);});
+const tMat=new THREE.MeshPhongMaterial({color:0xc8a870,shininess:15,specular:0xffe0d0});
+[[-.22,.12,0],[.22,.12,0]].forEach(p=>{const m=new THREE.Mesh(new THREE.SphereGeometry(.2,20,16),tMat.clone());m.geometry.scale(1,.8,1.3);m.position.set(...p);brainGrp.add(m);});
+brainGrp.scale.setScalar(.98);brainGrp.position.y=.08;
+
+// Region overlays
+const regionMsh={},regionAct={};
+REGIONS.forEach(r=>{
+  const m=new THREE.Mesh(new THREE.SphereGeometry(.28,18,14),new THREE.MeshPhongMaterial({color:r.hex,emissive:r.hex,emissiveIntensity:.4,transparent:true,opacity:0,depthWrite:false}));
+  m.position.set(...r.pos);m.userData={...r};brainGrp.add(m);regionMsh[r.key]=m;regionAct[r.key]=.3+Math.random()*.6;
+});
+
+// ══════════════════════════════════════════════════════════
+// DTI TRACTS with tube geometry + directional colors
+// ══════════════════════════════════════════════════════════
+const TDEFS=[
+  {a:'frontal-l',b:'parietal-l',name:'Arcuate fasciculus L'},
+  {a:'frontal-r',b:'parietal-r',name:'Arcuate fasciculus R'},
+  {a:'parietal-l',b:'occipital', name:'Superior longitudinal L'},
+  {a:'parietal-r',b:'occipital', name:'Superior longitudinal R'},
+  {a:'temporal-l',b:'hippocampus-l',name:'Ento/perirh. cortex L'},
+  {a:'temporal-r',b:'hippocampus-r',name:'Ento/perirh. cortex R'},
+  {a:'thalamus',b:'frontal-l',  name:'Thalamofrontal L'},
+  {a:'thalamus',b:'frontal-r',  name:'Thalamofrontal R'},
+  {a:'thalamus',b:'occipital',  name:'Thalamo-occipital'},
+  {a:'brainstem',b:'cerebellum',name:'Cerebellar peduncle'},
+  {a:'amygdala-l',b:'hippocampus-l',name:'Amygdalo-hippoc. L'},
+  {a:'amygdala-r',b:'hippocampus-r',name:'Amygdalo-hippoc. R'},
+  {a:'frontal-l',b:'frontal-r', name:'Corpus callosum (genu)'},
+  {a:'parietal-l',b:'parietal-r',name:'Corpus callosum (body)'},
+  {a:'prefrontal',b:'frontal-l',name:'Uncinate fasciculus L'},
+  {a:'prefrontal',b:'frontal-r',name:'Uncinate fasciculus R'},
+  {a:'motor-l',b:'brainstem',   name:'Corticospinal L'},
+  {a:'motor-r',b:'brainstem',   name:'Corticospinal R'},
+  {a:'angular-l',b:'temporal-l',name:'Arcuate (lang.) L'},
+  {a:'angular-r',b:'temporal-r',name:'Arcuate (lang.) R'},
+];
+
+const tractGrp=new THREE.Group();
+const tractCurves=[];
+// Build DTI tubes
+TDEFS.forEach(td=>{
+  const ra=REGIONS.find(r=>r.key===td.a),rb=REGIONS.find(r=>r.key===td.b);
+  if(!ra||!rb)return;
+  const p0=new THREE.Vector3(...ra.pos),p1=new THREE.Vector3(...rb.pos);
+  const dir=p1.clone().sub(p0).normalize();
+  // DTI color: R=left-right, G=ant-post, B=sup-inf
+  const dtiColor=new THREE.Color(Math.abs(dir.x),Math.abs(dir.z),Math.abs(dir.y));
+  const mid=p0.clone().add(p1).multiplyScalar(.5);mid.y+=.22;
+  const curve=new THREE.QuadraticBezierCurve3(p0,mid,p1);
+  tractCurves.push({curve,name:td.name,color:dtiColor});
+  // Tube geometry for realistic DTI appearance
+  const tubeGeo=new THREE.TubeGeometry(curve,20,0.022,6,false);
+  const tubeMat=new THREE.MeshPhongMaterial({color:dtiColor,transparent:true,opacity:.75,shininess:30,specular:0x888888});
+  tractGrp.add(new THREE.Mesh(tubeGeo,tubeMat));
+});
+brainGrp.add(tractGrp);tractGrp.visible=false;
+
+// Neural particles
+const NP=tractCurves.length*4;
+const pPos=new Float32Array(NP*3);const pData=[];
+for(let i=0;i<NP;i++)pData.push({ci:Math.floor(i/4),t:(i%4)/4,spd:.005+Math.random()*.007});
+const pGeo=new THREE.BufferGeometry();pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));
+const pMesh=new THREE.Points(pGeo,new THREE.PointsMaterial({color:0xeeeeff,size:.07,transparent:true,opacity:.9,sizeAttenuation:true}));
+brainGrp.add(pMesh);pMesh.visible=false;
+
+// ══════════════════════════════════════════════════════════
+// CLIPPING
+// ══════════════════════════════════════════════════════════
+const clipSag=new THREE.Plane(new THREE.Vector3(-1,0,0),0);
+const clipAxl=new THREE.Plane(new THREE.Vector3(0,-1,0),.3);
+const clipCor=new THREE.Plane(new THREE.Vector3(0,0,1),0);
+let clipMode='none';
+const allMats=[matL,matR,cerM.material,bsM.material,ccM.material,vMat,tMat];
+function applyClip(){
+  const planes=clipMode==='sagittal'?[clipSag]:clipMode==='axial'?[clipAxl]:clipMode==='coronal'?[clipCor]:[];
+  renderer.clippingPlanes=planes;
+  allMats.forEach(m=>{m.clippingPlanes=planes;m.side=planes.length>0?THREE.DoubleSide:THREE.FrontSide;});
+  const b=document.getElementById('clip-badge');b.classList.toggle('vis',planes.length>0);
+  b.textContent=clipMode==='sagittal'?'СРЕЗ: САГИТТАЛЬНЫЙ':clipMode==='axial'?'СРЕЗ: АКСИАЛЬНЫЙ':clipMode==='coronal'?'СРЕЗ: КОРОНАЛЬНЫЙ':'';
+}
+
+// ══════════════════════════════════════════════════════════
+// LABELS
+// ══════════════════════════════════════════════════════════
+const labCont=document.getElementById('lc'),lblEls={};
+let labelsOn=true;
+REGIONS.forEach(r=>{const el=document.createElement('div');el.className='lbl';el.textContent=r.name;el.dataset.key=r.key;labCont.appendChild(el);lblEls[r.key]=el;});
+const lcC=document.getElementById('lc2'),lcCtx=lcC.getContext('2d');
+function updateLabels(){
+  const rect=canvas.getBoundingClientRect();lcCtx.clearRect(0,0,lcC.width,lcC.height);
+  if(!labelsOn){Object.values(lblEls).forEach(el=>el.style.display='none');return;}
+  REGIONS.forEach(r=>{
+    const p=new THREE.Vector3(...r.pos).applyMatrix4(brainGrp.matrixWorld);
+    const v=p.clone().project(camera);const el=lblEls[r.key];if(!el)return;
+    if(v.z>1){el.style.display='none';return;}
+    const sx=(v.x+1)*rect.width/2,sy=(-v.y+1)*rect.height/2;
+    el.style.display='';el.style.left=sx+'px';el.style.top=sy+'px';
+    const sel=r.key===selKey,inNet=activeNet&&NETWORKS[activeNet]?.nodes.includes(r.key);
+    lcCtx.beginPath();lcCtx.moveTo(sx,sy);lcCtx.lineTo(sx+3,sy);
+    lcCtx.strokeStyle=sel?'rgba(58,184,255,0.7)':inNet?'rgba(255,200,80,0.6)':'rgba(58,184,255,0.13)';
+    lcCtx.lineWidth=sel||inNet?1.5:1;lcCtx.stroke();
+    lcCtx.beginPath();lcCtx.arc(sx,sy,sel?3:1.5,0,Math.PI*2);
+    lcCtx.fillStyle=sel?'#3ab8ff':inNet?'#ffcc50':'rgba(58,184,255,0.4)';lcCtx.fill();
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// LEFT SIDEBAR
+// ══════════════════════════════════════════════════════════
+const rlist=document.getElementById('rlist');
+REGIONS.forEach(r=>{
+  const el=document.createElement('div');el.className='ri';el.dataset.key=r.key;
+  el.innerHTML=`<div class="rdot" style="background:${r.color}"></div>
+    <div style="flex:1"><div class="rname">${r.name}</div>
+    <div class="r-bar"><div class="r-bar-fill" id="rb-${r.key}" style="width:${Math.floor(30+Math.random()*65)}%"></div></div></div>
+    <div class="rpct" id="rp-${r.key}">${Math.floor(30+Math.random()*65)}%</div>`;
+  el.addEventListener('click',()=>selectRegion(r.key));rlist.appendChild(el);
+});
+
+// Networks panel
+const netList=document.getElementById('net-list');
+Object.entries(NETWORKS).forEach(([key,net])=>{
+  const el=document.createElement('div');el.className='net-item';el.dataset.key=key;
+  el.innerHTML=`<div class="net-dot" style="background:${net.color}"></div><div style="flex:1;font-size:7.5px">${net.name}</div><div style="font-size:7px;color:var(--dim)">${net.nodes.length} узлов</div>`;
+  el.addEventListener('click',()=>toggleNetwork(key));netList.appendChild(el);
+});
+
+// Mini charts
+['act','cbf','bold','fa'].forEach(id=>{
+  const el=document.getElementById('mch-'+id);if(!el)return;
+  for(let i=0;i<16;i++){const b=document.createElement('div');b.className='mbar';b.style.height=(Math.random()*20+4)+'px';el.appendChild(b);}
+});
+const agridEl=document.getElementById('agrid');
+REGIONS.slice(0,8).forEach((_,ri)=>{
+  const row=document.createElement('div');row.style.display='flex';
+  for(let c=0;c<13;c++){const cell=document.createElement('div');cell.className='acell';cell.id=`ac-${ri}-${c}`;row.appendChild(cell);}
+  agridEl.appendChild(row);
+});
+
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+let autoRot=true,viewMode='anatomy',selKey=null,wireMode=false,scanPct=0,fmriMode=false;
+let health=88,actLevel=74;
+const hist={act:[],cbf:[],bold:[],fa:[]};
+Object.keys(hist).forEach(k=>{for(let i=0;i<16;i++)hist[k].push(Math.random());});
+
+// fMRI hot colormap
+function fmriColor(t){
+  // 0 = blue, 0.5 = yellow-green, 1 = bright yellow-red
+  const r=Math.max(0,Math.min(1,t*2)),g=Math.max(0,Math.min(1,t<0.5?t*2:2-t*2)),b=Math.max(0,Math.min(1,1-t*2));
+  return new THREE.Color(r,g,b);
+}
+
+// ══════════════════════════════════════════════════════════
+// SELECT / VIEW
+// ══════════════════════════════════════════════════════════
+function selectRegion(key){
+  if(selKey===key){selKey=null;document.getElementById('ip').classList.remove('vis');
+    document.querySelectorAll('.ri').forEach(el=>el.classList.remove('sel'));
+    Object.values(lblEls).forEach(el=>el.classList.remove('sel'));return;}
+  selKey=key;const r=REGIONS.find(r=>r.key===key);if(!r)return;
+  document.querySelectorAll('.ri').forEach(el=>el.classList.toggle('sel',el.dataset.key===key));
+  Object.entries(lblEls).forEach(([k,el])=>el.classList.toggle('sel',k===key));
+  const act=Math.floor(35+Math.random()*60);
+  document.getElementById('ip-name').textContent=r.name;
+  document.getElementById('ip-body').innerHTML=`
+    <div class="ipr">Зоны Бродмана <span>${r.ba}</span></div>
+    <div class="ipr">Роль <span>${r.role}</span></div>
+    <div class="ipr">Функция <span>${r.fn}</span></div>
+    <div class="ipr">Активность <span>${act}%</span></div>
+    <div class="ipr">BOLD-сигнал <span>${(Math.random()*2-0.5).toFixed(2)}%</span></div>
+    <div class="ipr">CBF <span>${Math.floor(Math.random()*30+40)} мл/мин</span></div>
+    <div class="ipr">Нейронов <span>~${(Math.random()*6+0.8).toFixed(1)}B</span></div>
+    <div class="ipr">Синапсов <span>${Math.floor(Math.random()*250+80)}M</span></div>
+    <div class="ipr">Латентность <span>${Math.floor(Math.random()*20+8)} мс</span></div>
+  `;
+  document.getElementById('ip-act-fill').style.width=act+'%';
+  document.getElementById('ip').classList.add('vis');
+  document.querySelector(`.ri[data-key="${key}"]`)?.scrollIntoView({block:'nearest'});
+}
+
+function toggleNetwork(key){
+  if(activeNet===key){activeNet=null;document.querySelectorAll('.net-item').forEach(el=>el.classList.remove('active'));document.getElementById('net-badge').classList.remove('vis');return;}
+  activeNet=key;
+  document.querySelectorAll('.net-item').forEach(el=>el.classList.toggle('active',el.dataset.key===key));
+  const net=NETWORKS[key];
+  document.getElementById('net-badge').textContent=net.name;document.getElementById('net-badge').classList.add('vis');
+  // Highlight network nodes
+  Object.entries(regionMsh).forEach(([k,m])=>{
+    const inNet=net.nodes.includes(k);
+    m.material.color.set(inNet?net.color:REGIONS.find(r=>r.key===k)?.hex||0xffffff);
+    m.material.emissive.set(inNet?net.color:REGIONS.find(r=>r.key===k)?.hex||0xffffff);
+    m.material.opacity=inNet?0.45:0.05;
+  });
+}
+
+function setViewMode(mode){
+  viewMode=mode;fmriMode=mode==='fmri';
+  document.getElementById('fmri-bar').classList.toggle('vis',fmriMode);
+  document.getElementById('s-mode').textContent='РЕЖИМ: '+(mode==='anatomy'?'АНАТОМИЯ':mode==='functional'?'ФУНКЦИИ':mode==='fmri'?'fMRI':mode==='connectivity'?'DTI ТРАКТЫ':'?');
+  if(mode==='anatomy'){matL.emissiveIntensity=matR.emissiveIntensity=0;tractGrp.visible=false;pMesh.visible=false;}
+  else if(mode==='functional'){tractGrp.visible=false;pMesh.visible=false;}
+  else if(mode==='fmri'){tractGrp.visible=false;pMesh.visible=false;}
+  else if(mode==='connectivity'){tractGrp.visible=true;pMesh.visible=true;}
+}
+
+// ══════════════════════════════════════════════════════════
+// BUTTONS
+// ══════════════════════════════════════════════════════════
+const mbtns=['bAnat','bFunc','bFmri','bConn'];
+function setMBtn(id,m){mbtns.forEach(b=>document.getElementById(b).classList.remove('on'));document.getElementById(id).classList.add('on');setViewMode(m);}
+document.getElementById('bAnat').addEventListener('click',()=>setMBtn('bAnat','anatomy'));
+document.getElementById('bFunc').addEventListener('click',()=>setMBtn('bFunc','functional'));
+document.getElementById('bFmri').addEventListener('click',()=>setMBtn('bFmri','fmri'));
+document.getElementById('bConn').addEventListener('click',()=>setMBtn('bConn','connectivity'));
+document.getElementById('bLbl').addEventListener('click',function(){labelsOn=!labelsOn;this.classList.toggle('on',labelsOn);});
+document.getElementById('bRot').addEventListener('click',function(){autoRot=!autoRot;this.classList.toggle('on',autoRot);});
+document.getElementById('bWire').addEventListener('click',function(){wireMode=!wireMode;this.classList.toggle('on',wireMode);[matL,matR,cerM.material].forEach(m=>m.wireframe=wireMode);});
+['bSag','bAxl','bCor'].forEach((id,i)=>{const modes=['sagittal','axial','coronal'];document.getElementById(id).addEventListener('click',()=>{clipMode=clipMode===modes[i]?'none':modes[i];['bSag','bAxl','bCor'].forEach(b=>document.getElementById(b).classList.remove('on'));if(clipMode!=='none')document.getElementById(id).classList.add('on');applyClip();});});
+document.getElementById('iclose').addEventListener('click',()=>{if(selKey)selectRegion(selKey);});
+
+const stateMap={bAwake:'awake',bSleep:'sleep',bMedit:'medit',bStress:'stress'};
+['bAwake','bSleep','bMedit','bStress'].forEach(id=>document.getElementById(id).addEventListener('click',()=>setBrainState(stateMap[id])));
+function setBrainState(id){
+  curState=id;const st=STATES[id];scene.background=new THREE.Color(st.bg);
+  const badge=document.getElementById('state-badge');badge.textContent=st.name;
+  badge.style.background=`rgba(0,0,0,.3)`;badge.style.border=`1px solid ${st.color}40`;badge.style.color=st.color;
+  document.getElementById('eeg-band').textContent=st.bands;
+  document.getElementById('s-state').textContent='СОСТОЯНИЕ: '+st.name;
+  ['bAwake','bSleep','bMedit','bStress'].forEach(b=>document.getElementById(b).classList.remove('on'));
+  document.getElementById('b'+id.charAt(0).toUpperCase()+id.slice(1)).classList.add('on');
+}
+
+// ══════════════════════════════════════════════════════════
+// CAMERA
+// ══════════════════════════════════════════════════════════
+const mouse=new THREE.Vector2();let rotY=0,rotX=.1,zoom=1,mDown=false,prevX=0,prevY=0,dSX=0,dSY=0;
+wrap.addEventListener('mousedown',e=>{mDown=true;prevX=dSX=e.clientX;prevY=dSY=e.clientY;});
+wrap.addEventListener('mouseup',e=>{const drag=Math.abs(e.clientX-dSX)>5||Math.abs(e.clientY-dSY)>5;mDown=false;if(!drag)doClick(e);});
+wrap.addEventListener('mousemove',e=>{if(mDown){rotY+=(e.clientX-prevX)*.011;rotX+=(e.clientY-prevY)*.011;rotX=Math.max(-.75,Math.min(.75,rotX));prevX=e.clientX;prevY=e.clientY;}doHover(e);});
+wrap.addEventListener('wheel',e=>{e.preventDefault();zoom*=e.deltaY>0?.92:1.08;zoom=Math.max(.35,Math.min(3.2,zoom));camera.position.z=5.8/zoom;},{passive:false});
+wrap.addEventListener('mouseleave',hideTooltip);
+const raycaster=new THREE.Raycaster(),tt=document.getElementById('tt');
+function gm(e){const r=canvas.getBoundingClientRect();mouse.x=((e.clientX-r.left)/r.width)*2-1;mouse.y=-((e.clientY-r.top)/r.height)*2+1;}
+function showTooltip(x,y,txt){tt.style.left=(x+12)+'px';tt.style.top=(y-8)+'px';tt.textContent=txt;tt.style.display='block';}
+function hideTooltip(){tt.style.display='none';}
+function doHover(e){gm(e);raycaster.setFromCamera(mouse,camera);const hits=raycaster.intersectObjects(Object.values(regionMsh));
+  if(hits.length>0&&hits[0].object.userData.key){const r=hits[0].object.userData;showTooltip(e.clientX,e.clientY,`${r.name} | BA: ${r.ba!=='—'?r.ba:'—'} | ${r.fn}`);canvas.style.cursor='pointer';}
+  else{hideTooltip();canvas.style.cursor='grab';}
+}
+function doClick(e){gm(e);raycaster.setFromCamera(mouse,camera);const hits=raycaster.intersectObjects(Object.values(regionMsh));if(hits.length>0)selectRegion(hits[0].object.userData.key);}
+
+// ══════════════════════════════════════════════════════════
+// EEG
+// ══════════════════════════════════════════════════════════
+const eegEl=document.getElementById('eeg'),eegCtx=eegEl.getContext('2d');let eegOff=0;
+function drawEEG(){
+  const w=eegEl.width||172,h=eegEl.height||52,st=STATES[curState];
+  eegCtx.clearRect(0,0,w,h);
+  eegCtx.strokeStyle='rgba(50,180,255,0.06)';eegCtx.lineWidth=1;
+  for(let y=0;y<=h;y+=h/3){eegCtx.beginPath();eegCtx.moveTo(0,y);eegCtx.lineTo(w,y);eegCtx.stroke();}
+  eegCtx.strokeStyle=st.color;eegCtx.lineWidth=1.4;eegCtx.shadowColor=st.color;eegCtx.shadowBlur=4;
+  eegCtx.beginPath();
+  for(let x=0;x<w;x++){const t=(x+eegOff)/w*Math.PI*20,amp=st.eegAmp,y2=h/2+Math.sin(t*st.eegHz*.5)*10*amp+Math.sin(t*st.eegHz*1.2)*4.5*amp+Math.sin(t*st.eegHz*2.3)*2*amp+(vn(x/25,eegOff/50,0)*2-1)*2.5*amp;x===0?eegCtx.moveTo(x,y2):eegCtx.lineTo(x,y2);}
+  eegCtx.stroke();eegCtx.shadowBlur=0;eegOff+=2.5;
+}
+
+// ══════════════════════════════════════════════════════════
+// SIMULATION
+// ══════════════════════════════════════════════════════════
+function updateMetrics(){
+  const st=STATES[curState];
+  health=Math.max(62,Math.min(100,health+(Math.random()-.515)*.9));
+  actLevel=Math.max(st.actBase*60,Math.min(st.actBase*110,actLevel+(Math.random()-.5)*2.5));
+  const cbf=45+actLevel*.2+Math.random()*5,bold=(actLevel/50-1+Math.random()*.4).toFixed(2),fa=health*.94+Math.random()*4;
+  document.getElementById('mv-act').textContent=Math.round(actLevel);
+  document.getElementById('mv-cbf').textContent=Math.round(cbf);
+  document.getElementById('mv-bold').textContent=bold;
+  document.getElementById('mv-fa').textContent=Math.round(fa);
+  document.getElementById('hv-syn').textContent=Math.floor(90+actLevel*12)+'T';
+  document.getElementById('hv-act').textContent=Math.round(actLevel)+'%';
+  document.getElementById('hv-hlth').textContent=Math.round(health)+'%';
+  hist.act.push(actLevel/100);hist.act.shift();hist.cbf.push(cbf/70);hist.cbf.shift();
+  hist.bold.push(Math.max(0,parseFloat(bold)/3+.5));hist.bold.shift();hist.fa.push(fa/100);hist.fa.shift();
+  ['act','cbf','bold','fa'].forEach(id=>{const bars=document.getElementById('mch-'+id)?.children;if(bars)hist[id].forEach((v,i)=>{if(bars[i])bars[i].style.height=Math.max(2,v*22)+'px';});});
+  REGIONS.forEach(r=>{
+    const v=Math.floor(Math.max(8,Math.min(96,(st.actBase*100)+(Math.random()*50-25))));
+    const el=document.getElementById('rp-'+r.key),bar=document.getElementById('rb-'+r.key);
+    if(el)el.textContent=v+'%';if(bar)bar.style.width=v+'%';regionAct[r.key]=v/100;
+  });
+  for(let ri=0;ri<8;ri++)for(let c=0;c<13;c++){const cell=document.getElementById(`ac-${ri}-${c}`);if(cell){const v=Math.random()*STATES[curState].actBase;cell.style.background=`rgba(50,184,255,${(0.05+v*0.85).toFixed(2)})`;}}
+  scanPct=(scanPct+.7)%100;document.getElementById('spbar').style.width=scanPct+'%';document.getElementById('s-pct').textContent=Math.floor(scanPct)+'%';
+  document.getElementById('s-clk').textContent=new Date().toTimeString().slice(0,8);
+}
+setInterval(updateMetrics,1000);updateMetrics();
+
+// ══════════════════════════════════════════════════════════
+// ANIMATE
+// ══════════════════════════════════════════════════════════
+let fpsT=performance.now(),fpsN=0;
+function animate(){
+  requestAnimationFrame(animate);
+  fpsN++;const now=performance.now();
+  if(now-fpsT>600){document.getElementById('fps').textContent=Math.round(fpsN*1000/(now-fpsT));fpsT=now;fpsN=0;}
+  if(autoRot)rotY+=.0035;
+  brainGrp.rotation.y=rotY;brainGrp.rotation.x=rotX;
+
+  // Particles
+  if(pMesh.visible&&tractCurves.length>0){
+    const pa=pGeo.attributes.position.array;
+    pData.forEach((pd,i)=>{pd.t+=pd.spd;if(pd.t>1)pd.t=0;if(pd.ci<tractCurves.length){const pt=tractCurves[pd.ci].curve.getPoint(pd.t);pa[i*3]=pt.x;pa[i*3+1]=pt.y;pa[i*3+2]=pt.z;}});
+    pGeo.attributes.position.needsUpdate=true;
+  }
+
+  // Region activity glow
+  const phase=Math.sin(now*.0009);const st=STATES[curState];
+  REGIONS.forEach(r=>{
+    const m=regionMsh[r.key];if(!m)return;
+    const act=regionAct[r.key]||.4;
+    let op=0;
+    if(fmriMode){
+      // fMRI: color based on BOLD level
+      const boldVal=act*st.actBase;const fc=fmriColor(boldVal);
+      m.material.color.copy(fc);m.material.emissive.copy(fc);
+      op=Math.max(0.1,boldVal*.5+phase*.05);
+    } else if(viewMode==='functional'){
+      op=act*st.actBase*.55+phase*.05*act;
+    } else if(viewMode==='connectivity'){
+      op=.08+act*.05;
+    } else if(r.key===selKey){
+      op=.28+Math.sin(now*.003)*.1;
+    } else if(activeNet&&NETWORKS[activeNet]?.nodes.includes(r.key)){
+      op=.35+Math.sin(now*.002+r.pos[0])*.08;
+    }
+    m.material.opacity=op;
+  });
+
+  const em=st.actBase*.04;
+  matL.emissive.setRGB(em*.8,em*.3,em*.2);matR.emissive.setRGB(em*.8,em*.3,em*.2);
+  matL.emissiveIntensity=matR.emissiveIntensity=1;
+  drawEEG();renderer.render(scene,camera);updateLabels();
+}
+
+animate();
+setBrainState('awake');
+setViewMode('anatomy');
+</script>
+</body>
+</html>

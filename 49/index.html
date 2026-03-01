@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NeuroScan v49 — Neural Dynamics / Нейродинамика</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#060810;--panel:#0a1020;--panel2:#0d1428;--b1:rgba(50,140,255,.12);--b2:rgba(50,140,255,.22);
+  --accent:#3ab8ff;--accent2:#50e8a0;--text:#ccd8f0;--dim:rgba(200,216,240,.42);
+  --gold:#ffcc50;--red:#ff5568;--purple:#c084fc}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif}
+body.light{--bg:#e8ecf4;--panel:#d8dde8;--panel2:#cfd6e3;--b1:rgba(60,100,200,.18);--b2:rgba(60,100,200,.28);
+  --accent:#1a6fd4;--accent2:#22b870;--text:#1a2440;--dim:rgba(30,50,100,.52);
+  --gold:#b07800;--red:#cc2222;--purple:#7030b8}
+body{display:flex;flex-direction:column}
+.hdr{height:42px;flex-shrink:0;background:var(--panel);border-bottom:1px solid var(--b1);
+  display:flex;align-items:center;gap:10px;padding:0 14px;overflow:hidden}
+.logo{font-size:12px;font-weight:700;letter-spacing:.18em;color:var(--accent);white-space:nowrap}
+.logo em{font-style:normal;color:var(--dim);font-size:10px;font-weight:400}
+.sep{width:1px;height:20px;background:var(--b2);flex-shrink:0}
+.hm{display:flex;flex-direction:column}
+.hm-l{font-size:7px;letter-spacing:.1em;color:var(--dim)}
+.hm-v{font-size:11px;color:var(--accent);font-weight:700}
+.spacer{flex:1}
+.hbtns{display:flex;gap:4px}
+.hb{padding:4px 9px;font-size:9px;letter-spacing:.06em;cursor:pointer;background:rgba(50,180,255,.07);border:1px solid var(--b1);color:var(--dim);transition:.18s;border-radius:2px;user-select:none;white-space:nowrap}
+.hb:hover,.hb.on{background:rgba(50,180,255,.18);color:var(--accent);border-color:var(--b2)}
+.hb.st{border-color:rgba(100,220,150,.2);color:rgba(120,220,160,.6)}
+.hb.st.on{background:rgba(80,200,130,.14);color:#50e8a0;border-color:rgba(80,200,130,.45)}
+.hb.fmri.on{background:rgba(255,100,50,.18);color:#ff9060;border-color:rgba(255,120,60,.45)}
+.hb.th{font-size:13px;padding:2px 7px}
+.main{display:flex;flex:1;min-height:0;overflow:hidden}
+.sl{width:220px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+.sl-tabs{display:flex;flex-shrink:0;border-bottom:1px solid var(--b1)}
+.tab{flex:1;padding:6px 4px;font-size:9px;letter-spacing:.07em;text-align:center;cursor:pointer;color:var(--dim);transition:.15s;border-bottom:2px solid transparent}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+.sl-body{flex:1;overflow-y:auto;padding:4px 0}
+.sl-body::-webkit-scrollbar{width:3px}
+.sl-body::-webkit-scrollbar-thumb{background:rgba(50,180,255,.2)}
+.enc-cat{padding:6px 12px 2px;font-size:9px;letter-spacing:.10em;color:var(--dim)}
+.enc-item{display:flex;align-items:center;gap:7px;padding:5px 12px;font-size:11px;cursor:pointer;transition:.14s;border-left:2px solid transparent}
+.enc-item:hover{background:rgba(50,180,255,.07)}
+.enc-item.sel{background:rgba(50,180,255,.12);color:var(--accent);border-left-color:var(--accent)}
+.enc-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.cw{flex:1;position:relative;min-width:0;overflow:hidden;background:#050508}
+.cw::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:linear-gradient(rgba(50,180,255,.012) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(50,180,255,.012) 1px,transparent 1px);background-size:38px 38px}
+#c{display:block;width:100%;height:100%;z-index:2}
+#lc2{position:absolute;inset:0;z-index:8;pointer-events:none}
+.lc{position:absolute;inset:0;pointer-events:none;z-index:10}
+.lbl{position:absolute;font-size:7.5px;letter-spacing:.06em;white-space:nowrap;color:rgba(200,225,255,.6);
+  background:rgba(5,10,20,.76);padding:2px 6px;border-left:2px solid rgba(50,180,255,.3);
+  transform:translateY(-50%);pointer-events:none;transition:.2s}
+.lbl.sel{color:var(--accent);border-color:var(--accent);background:rgba(5,15,38,.93)}
+.lbl.net{color:var(--gold);border-color:var(--gold)}
+.badge{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:15;pointer-events:none;
+  font-size:8.5px;letter-spacing:.14em;padding:3px 12px;border-radius:2px;min-width:80px;text-align:center}
+.clip-badge{position:absolute;top:36px;left:50%;transform:translateX(-50%);
+  background:rgba(255,180,50,.12);border:1px solid rgba(255,180,50,.4);color:rgba(255,200,80,.9);
+  font-size:8px;padding:2px 9px;z-index:15;pointer-events:none;display:none;letter-spacing:.1em}
+.clip-badge.vis{display:block}
+.fps{position:absolute;bottom:5px;right:5px;font-size:7.5px;color:rgba(200,216,240,.2);z-index:15;pointer-events:none}
+.sr{width:280px;flex-shrink:0;background:var(--panel);border-left:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+.sr-hd{padding:8px 14px 6px;flex-shrink:0;border-bottom:1px solid var(--b1)}
+.sr-title{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:.07em;line-height:1.3}
+.sr-sub{font-size:10px;color:var(--dim);margin-top:2px;letter-spacing:.05em}
+.sr-body{flex:1;overflow-y:auto;padding:12px 14px}
+.sr-body::-webkit-scrollbar{width:3px}
+.sr-body::-webkit-scrollbar-thumb{background:rgba(50,180,255,.2)}
+.art-section{margin-bottom:14px}
+.art-section-title{font-size:10px;letter-spacing:.10em;color:var(--dim);margin-bottom:6px;padding-bottom:3px;border-bottom:1px solid var(--b1)}
+.art-p{font-size:11px;color:var(--text);line-height:1.65;margin-bottom:7px}
+.art-list{list-style:none;padding:0}
+.art-list li{font-size:10.5px;color:var(--text);line-height:1.55;padding:2px 0 2px 12px;position:relative}
+.art-list li::before{content:'→';position:absolute;left:0;color:var(--accent)}
+.art-tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;margin:2px;border:1px solid var(--b2);color:var(--dim)}
+.art-ba{background:rgba(50,180,255,.08)}
+.art-fact{background:rgba(80,200,130,.06);border:1px solid rgba(80,200,130,.2);padding:8px 11px;border-radius:3px;margin-bottom:9px;font-size:10.5px;color:rgba(200,240,220,.85);line-height:1.55}
+.art-warn{background:rgba(255,85,104,.06);border:1px solid rgba(255,85,104,.2);padding:8px 11px;border-radius:3px;margin-bottom:9px;font-size:10.5px;color:rgba(255,200,200,.85);line-height:1.55}
+.digit-step{display:flex;gap:8px;align-items:flex-start;margin-bottom:9px}
+.digit-num{width:22px;height:22px;border-radius:50%;background:rgba(50,180,255,.15);border:1px solid var(--b2);color:var(--accent);font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.digit-text{font-size:10.5px;color:var(--text);line-height:1.55}
+.net-node{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;margin:2px 2px 2px 0;cursor:pointer;border:1px solid currentColor;opacity:.7;transition:.14s}
+.net-node:hover{opacity:1}
+#mtx-canvas{display:block;width:100%;image-rendering:pixelated;flex-shrink:0}
+.mtx-wrap{padding:8px;overflow-y:auto;flex:1}
+.mtx-legend{font-size:9px;color:var(--dim);padding:4px 8px;line-height:1.6}
+.fmri-bar{position:absolute;bottom:42px;left:50%;transform:translateX(-50%);z-index:15;pointer-events:none;
+  display:none;align-items:center;gap:6px;font-size:9px;color:rgba(255,255,255,.7);
+  background:rgba(4,8,18,.82);border:1px solid rgba(255,100,50,.3);padding:4px 10px;border-radius:3px}
+.fmri-bar.vis{display:flex}
+.fmri-scale{width:80px;height:10px;border-radius:2px;background:linear-gradient(90deg,#0040ff,#00ccff,#00ff80,#ffff00,#ff4000)}
+.eeg-wrap{padding:8px 14px;border-top:1px solid var(--b1);flex-shrink:0}
+.eeg-t{font-size:7px;letter-spacing:.1em;color:var(--dim);margin-bottom:4px}
+#eeg{display:block;width:100%;height:44px;background:rgba(0,0,0,.4);border:1px solid rgba(50,180,255,.1)}
+.sbar{height:30px;flex-shrink:0;background:var(--panel);border-top:1px solid var(--b1);
+  display:flex;align-items:center;gap:10px;padding:0 12px;font-size:9.5px;color:var(--dim)}
+.dot{width:6px;height:6px;border-radius:50%;background:#3dff88;box-shadow:0 0 5px #3dff88;animation:dp 2s infinite}
+@keyframes dp{0%,100%{opacity:1}50%{opacity:.35}}
+.sprog{flex:1;height:2px;background:rgba(50,180,255,.08);border-radius:1px;overflow:hidden}
+.spbar{height:100%;background:linear-gradient(90deg,var(--accent),#88eeff);width:0;transition:.5s}
+.tt{position:fixed;background:rgba(4,9,20,.94);border:1px solid var(--b2);padding:4px 9px;font-size:8.5px;color:var(--text);pointer-events:none;z-index:200;display:none;white-space:nowrap}
+#neuron-overlay{position:absolute;inset:0;z-index:20;pointer-events:none;display:none}
+#neuron-overlay.vis{display:block}
+.zoom-hint{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);font-size:8px;color:var(--dim);letter-spacing:.1em;z-index:15;pointer-events:none;background:rgba(5,10,20,.7);padding:3px 10px;opacity:0;transition:.5s}
+.zoom-hint.vis{opacity:1}
+/* Layer row */
+.layer-row{height:28px;flex-shrink:0;background:rgba(8,14,30,.95);border-bottom:1px solid var(--b1);
+  display:flex;align-items:center;gap:3px;padding:0 14px;overflow:hidden}
+.lb{padding:3px 9px;font-size:8.5px;letter-spacing:.05em;cursor:pointer;border:1px solid var(--b1);border-radius:2px;
+  color:var(--dim);transition:.15s;user-select:none;white-space:nowrap;background:rgba(50,180,255,.04)}
+.lb:hover{background:rgba(50,180,255,.12);color:var(--text)}
+.lb.on{background:rgba(50,180,255,.18);color:var(--accent);border-color:var(--b2)}
+.lb.map.on{background:rgba(200,160,40,.12);color:var(--gold);border-color:rgba(200,160,40,.4)}
+.lb-sep{width:1px;height:16px;background:var(--b2);margin:0 5px;flex-shrink:0}
+.lb-lbl{font-size:8px;letter-spacing:.09em;color:var(--dim);flex-shrink:0;margin-right:3px}
+body.light .layer-row{background:rgba(200,210,230,.95)}
+/* Layer info badge in 3D */
+.layer-badge{position:absolute;top:8px;right:8px;z-index:15;pointer-events:none;
+  font-size:9px;letter-spacing:.1em;padding:3px 10px;background:rgba(4,8,18,.82);
+  border:1px solid var(--b2);color:var(--accent);display:none}
+.layer-badge.vis{display:block}
+/* Propagation indicator */
+.prop-badge{position:absolute;top:36px;left:50%;transform:translateX(-50%);z-index:16;pointer-events:none;
+  font-size:9px;letter-spacing:.1em;padding:3px 14px;background:rgba(255,160,60,.12);
+  border:1px solid rgba(255,160,60,.5);color:rgba(255,180,80,.95);display:none;border-radius:2px}
+.prop-badge.vis{display:block}
+/* Digitization dashboard */
+.digi-panel{position:absolute;bottom:8px;left:8px;z-index:16;pointer-events:none;
+  background:rgba(4,8,18,.88);border:1px solid var(--b1);padding:6px 10px;min-width:168px;
+  border-radius:2px;border-left:2px solid var(--accent)}
+.digi-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px}
+.digi-row:last-child{margin-bottom:0}
+.digi-lbl{font-size:8px;color:var(--dim);letter-spacing:.06em}
+.digi-val{font-size:9px;color:var(--accent);font-weight:700;letter-spacing:.06em}
+.digi-bar{height:2px;background:rgba(50,180,255,.1);border-radius:1px;overflow:hidden;flex:1;min-width:40px}
+.digi-fill{height:100%;background:linear-gradient(90deg,var(--accent),#88eeff);border-radius:1px;transition:.8s}
+/* EEG bands strip */
+.bands-wrap{display:flex;gap:2px;padding:3px 8px;border-top:1px solid var(--b1);flex-shrink:0}
+.band-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px}
+.band-lbl{font-size:7px;color:var(--dim);letter-spacing:.04em}
+.band-bar{width:100%;border-radius:1px;transition:.4s;min-height:2px}
+body.light .digi-panel{background:rgba(220,228,242,.92)}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="logo">NEUROSCAN <em>v49</em> · <span id="logo-sub">ЦИФРОВОЕ СОЗНАНИЕ</span></div>
+  <div class="sep"></div>
+  <div class="hm"><div class="hm-l" id="lbl-neurons">НЕЙРОНЫ</div><div class="hm-v">86B</div></div>
+  <div class="hm"><div class="hm-l" id="lbl-synapses">СИНАПСЫ</div><div class="hm-v" id="hv-syn">—</div></div>
+  <div class="hm"><div class="hm-l" id="lbl-activity">АКТИВНОСТЬ</div><div class="hm-v" id="hv-act">—</div></div>
+  <div class="sep"></div>
+  <div class="hb st on" id="bAwake">БОДРСТВ.</div>
+  <div class="hb st" id="bSleep">СОН</div>
+  <div class="hb st" id="bMedit">МЕДИТ.</div>
+  <div class="hb st" id="bStress">СТРЕСС</div>
+  <div class="spacer"></div>
+  <div class="hbtns">
+    <div class="hb on" id="bAnat">АНАТОМИЯ</div>
+    <div class="hb"    id="bFunc">ФУНКЦИИ</div>
+    <div class="hb"    id="bConn">ТРАКТЫ</div>
+    <div class="hb on" id="bLbl">МЕТКИ</div>
+    <div class="hb on" id="bRot">↺</div>
+    <div class="hb"    id="bWire">КАРКАС</div>
+    <div class="hb"    id="bMatrix">МАТРИЦА</div>
+    <div class="hb"    id="bSag">SAG</div>
+    <div class="hb"    id="bAxl">AXL</div>
+    <div class="hb"    id="bCor">COR</div>
+    <div class="sep"></div>
+    <div class="hb fmri" id="bFmri">fMRI</div>
+    <div class="hb"      id="bLang" title="Switch language / Переключить язык">РУ</div>
+    <div class="hb th"   id="bTheme" title="Тёмная / Светлая тема">☀</div>
+  </div>
+</div>
+
+<div class="layer-row">
+  <span class="lb-lbl" id="lbl-layers">СЛОИ:</span>
+  <div class="lb on" id="lL1" title="Поверхность мозга">ПОВЕРХН.</div>
+  <div class="lb" id="lL2" title="Кора (извилины / борозды)">КОРА</div>
+  <div class="lb" id="lL3" title="Белое вещество">БЕЛОЕ ВЕЩ.</div>
+  <div class="lb" id="lL4" title="Глубокие структуры">ГЛУБИНА</div>
+  <div class="lb" id="lL5" title="Ствол мозга">СТВОЛ</div>
+  <div class="lb-sep"></div>
+  <span class="lb-lbl" id="lbl-map">КАРТА:</span>
+  <div class="lb map on" id="lMA">АНАТОМИЯ</div>
+  <div class="lb map" id="lMF">ФУНКЦИИ</div>
+  <div class="lb map" id="lMB">БРОДМАНА</div>
+</div>
+<div class="main">
+  <div class="sl">
+    <div class="sl-tabs">
+      <div class="tab on" id="tab-enc" onclick="switchTab('enc')">ЭНЦИКЛ.</div>
+      <div class="tab" id="tab-reg" onclick="switchTab('reg')">РЕГИОНЫ</div>
+      <div class="tab" id="tab-net" onclick="switchTab('net')">СЕТИ</div>
+      <div class="tab" id="tab-mtx" onclick="switchTab('mtx')">МАТРИЦА</div>
+    </div>
+    <div class="sl-body" id="sl-body"></div>
+  </div>
+
+  <div class="cw" id="cw">
+    <canvas id="c"></canvas>
+    <canvas id="lc2"></canvas>
+    <div class="lc" id="lc"></div>
+    <canvas id="neuron-overlay"></canvas>
+    <div class="badge" id="badge"></div>
+    <div class="clip-badge" id="clip-badge"></div>
+    <div class="layer-badge" id="layer-badge"></div>
+    <div class="prop-badge" id="prop-badge"></div>
+    <div class="digi-panel" id="digi-panel">
+      <div class="digi-row"><span class="digi-lbl" id="dlbl-regions">РЕГИОНЫ</span><span class="digi-val">22/22</span><div class="digi-bar"><div class="digi-fill" style="width:100%"></div></div></div>
+      <div class="digi-row"><span class="digi-lbl" id="dlbl-connect">КОННЕКТОМ</span><span class="digi-val" id="d-links">—</span><div class="digi-bar"><div class="digi-fill" id="d-links-bar" style="width:0%"></div></div></div>
+      <div class="digi-row"><span class="digi-lbl" id="dlbl-synapse">СИНАПСЫ</span><span class="digi-val" id="d-syn">—</span><div class="digi-bar"><div class="digi-fill" id="d-syn-bar" style="width:0%"></div></div></div>
+      <div class="digi-row"><span class="digi-lbl" id="dlbl-bold">BOLD fMRI</span><span class="digi-val" id="d-bold">—</span><div class="digi-bar"><div class="digi-fill" id="d-bold-bar" style="width:0%"></div></div></div>
+      <div class="digi-row"><span class="digi-lbl" id="dlbl-scan">СКАН</span><span class="digi-val" id="d-scan">0%</span><div class="digi-bar"><div class="digi-fill" id="d-scan-bar" style="width:0%"></div></div></div>
+    </div>
+    <div class="fmri-bar" id="fmri-bar">
+      <span>BOLD:</span><div class="fmri-scale"></div><span>низкий → высокий</span>
+    </div>
+    <div class="fps">FPS:<span id="fps">60</span></div>
+    <div class="zoom-hint" id="zoom-hint">Приблизьтесь, чтобы увидеть нейроны</div>
+  </div>
+
+  <div class="sr">
+    <div class="sr-hd">
+      <div class="sr-title" id="sr-title">Энциклопедия мозга</div>
+      <div class="sr-sub" id="sr-sub">Выберите раздел или кликните на регион</div>
+      <div id="lang-badge" style="font-size:8px;color:var(--dim);margin-top:3px;letter-spacing:.1em"></div>
+    </div>
+    <div class="sr-body" id="sr-body"></div>
+    <div class="eeg-wrap">
+      <div class="eeg-t">ЭЭГ — <span id="eeg-band">АЛЬФА 8–13 Гц</span></div>
+      <canvas id="eeg"></canvas>
+    </div>
+    <div class="bands-wrap" id="bands-wrap">
+      <div class="band-col"><div class="band-bar" id="bb-delta" style="background:#7080ff;height:4px"></div><div class="band-lbl">δ</div></div>
+      <div class="band-col"><div class="band-bar" id="bb-theta" style="background:#e8c050;height:4px"></div><div class="band-lbl">θ</div></div>
+      <div class="band-col"><div class="band-bar" id="bb-alpha" style="background:#50e8a0;height:4px"></div><div class="band-lbl">α</div></div>
+      <div class="band-col"><div class="band-bar" id="bb-beta"  style="background:#3ab8ff;height:4px"></div><div class="band-lbl">β</div></div>
+      <div class="band-col"><div class="band-bar" id="bb-gamma" style="background:#ff6060;height:4px"></div><div class="band-lbl">γ</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="sbar">
+  <div class="dot"></div>
+  <span id="s-state">СОСТОЯНИЕ: БОДРСТВОВАНИЕ</span>
+  <span style="color:var(--b2)">│</span>
+  <span id="s-topic">Тема: Обзор</span>
+  <div class="sprog"><div class="spbar" id="spbar"></div></div>
+  <span id="s-pct">0%</span>
+  <span style="color:var(--b2)">│</span>
+  <span id="s-clk">--:--:--</span>
+</div>
+<div class="tt" id="tt"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════════════════════════
+// LANGUAGE STRINGS
+// ══════════════════════════════════════════════════════════════════
+let lang = 'ru';
+const S = {
+  ru:{
+    logoSub:'ЦИФРОВОЕ СОЗНАНИЕ', neurons:'НЕЙРОНЫ', synapses:'СИНАПСЫ', activity:'АКТИВНОСТЬ',
+    btnAnat:'АНАТОМИЯ', btnFunc:'ФУНКЦИИ', btnConn:'ТРАКТЫ', btnLbl:'МЕТКИ', btnWire:'КАРКАС', btnMatrix:'МАТРИЦА',
+    tabs:['ЭНЦИКЛ.','РЕГИОНЫ','СЕТИ','МАТРИЦА'],
+    catCortex:'КОРА', catSubcortex:'ПОДКОРКОВЫЕ', catHindBrain:'ЗАДНИЙ МОЗГ',
+    encTitle:'Энциклопедия мозга', encSub:'Выберите раздел или кликните на регион',
+    eegLbl:'ЭЭГ', zoomHint:'Приблизьтесь, чтобы увидеть нейроны',
+    fmriLow:'низкий', fmriHigh:'высокий',
+    stateTopic:'Тема:', stateNet:'Сеть:', stateRegion:'Регион:',
+    statePfx:'СОСТОЯНИЕ:',
+    braTitle:'Зоны Бродмана', neuronsLbl:'Нейронов', synapsesLbl:'Синапсов', perfusionLbl:'Перфузия',
+    langBadge:'Язык: Русский',
+    mtxTitle:'Коннектом — матрица связей',
+    mtxSub:'Сила функциональной связности между регионами',
+    mtxLegend:'Яркость = сила связи. Нажмите на регион для выделения строки.',
+    syncNotes:'нажмите fMRI для тепловой карты',
+    syncTitle:'СИНХРОНИЗАЦИЯ', syncDesc:'Анимированные дуги отображают функциональную связность в реальном времени.',
+    regions_lbl:' регионов',
+    layerLbl:'СЛОИ:', mapLbl:'КАРТА:',
+    layers:['ПОВЕРХН.','КОРА','БЕЛОЕ ВЕЩ.','ГЛУБИНА','СТВОЛ'],
+    maps:['АНАТОМИЯ','ФУНКЦИИ','БРОДМАНА'],
+    layerInfo:[
+      'Поверхность: кора мозга, борозды и извилины',
+      'Кора: толщина ~3–4 мм, 6 слоёв нейронов',
+      'Белое вещество: миелиновые волокна, связывает регионы',
+      'Глубокие структуры: таламус, гиппокамп, миндалина, базальные ганглии',
+      'Ствол мозга: мост, продолговатый мозг — жизненно важные функции'
+    ],
+    digiLabels:['РЕГИОНЫ','КОННЕКТОМ','СИНАПСЫ','BOLD fMRI','СКАН'],
+  },
+  en:{
+    logoSub:'DIGITAL CONSCIOUSNESS', neurons:'NEURONS', synapses:'SYNAPSES', activity:'ACTIVITY',
+    btnAnat:'ANATOMY', btnFunc:'FUNCTION', btnConn:'TRACTS', btnLbl:'LABELS', btnWire:'WIRE', btnMatrix:'MATRIX',
+    tabs:['ENCYCLOP.','REGIONS','NETWORKS','MATRIX'],
+    catCortex:'CORTEX', catSubcortex:'SUBCORTICAL', catHindBrain:'HINDBRAIN',
+    encTitle:'Brain Encyclopedia', encSub:'Select a section or click a region',
+    eegLbl:'EEG', zoomHint:'Zoom in to see neurons',
+    fmriLow:'low', fmriHigh:'high',
+    stateTopic:'Topic:', stateNet:'Network:', stateRegion:'Region:',
+    statePfx:'STATE:',
+    braTitle:'Brodmann Areas', neuronsLbl:'Neurons', synapsesLbl:'Synapses', perfusionLbl:'Perfusion',
+    langBadge:'Language: English',
+    mtxTitle:'Connectome — Connectivity Matrix',
+    mtxSub:'Functional connectivity strength between regions',
+    mtxLegend:'Brightness = connection strength. Click a region to highlight its row.',
+    syncNotes:'press fMRI for heatmap',
+    syncTitle:'SYNCHRONIZATION', syncDesc:'Animated arcs display real-time functional connectivity.',
+    regions_lbl:' regions',
+    layerLbl:'LAYERS:', mapLbl:'MAP:',
+    layers:['SURFACE','CORTEX','WHITE MATTER','DEEP','BRAINSTEM'],
+    maps:['ANATOMY','FUNCTION','BRODMANN'],
+    layerInfo:[
+      'Surface: cerebral cortex, gyri and sulci visible',
+      'Cortex: ~3–4 mm thick, 6 neuronal layers',
+      'White matter: myelinated fibers connecting regions',
+      'Deep structures: thalamus, hippocampus, amygdala, basal ganglia',
+      'Brainstem: pons, medulla oblongata — vital life functions'
+    ],
+    digiLabels:['REGIONS','CONNECTOME','SYNAPSES','BOLD fMRI','SCAN'],
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════
+// ENCYCLOPEDIA (RU)
+// ══════════════════════════════════════════════════════════════════
+const ENC = {
+  overview:{title:'Мозг человека',sub:'Самый сложный орган во Вселенной',html:`<div class="art-fact">🧠 86 миллиардов нейронов · 100 триллионов синапсов · 1.4 кг · 20 Вт</div><div class="art-section"><div class="art-section-title">ЧТО ТАКОЕ МОЗГ</div><p class="art-p">Мозг — центральный орган нервной системы. Управляет телом, обрабатывает информацию, хранит память и порождает сознание.</p><p class="art-p">Один кубический миллиметр коры содержит ~100 000 нейронов и ~1 миллиард синаптических связей.</p></div><div class="art-section"><div class="art-section-title">АНАТОМИЧЕСКИЕ ДОЛИ</div><ul class="art-list"><li><b>Лобная</b> — планирование, речь, личность, движение</li><li><b>Теменная</b> — тактильные ощущения, пространство, счёт</li><li><b>Височная</b> — слух, память, узнавание лиц и речи</li><li><b>Затылочная</b> — зрение (первичная кора V1–V5)</li><li><b>Мозжечок</b> — координация, тонкая моторика</li><li><b>Ствол</b> — дыхание, ЧСС, бодрствование</li></ul></div><div class="art-section"><div class="art-section-title">ПОЧЕМУ МОЗГ СКЛАДЧАТЫЙ?</div><p class="art-p">Извилины (gyri) и борозды (sulci) позволяют вместить поверхность ~2500 см² в объём черепа. Без складок кора была бы размером с наволочку. Глубокие борозды называются щелями (fissures): сильвиева щель отделяет лобную и теменную доли от височной.</p></div>`},
+  neuron:{title:'Нейрон',sub:'Базовая единица нервной системы',html:`<div class="art-fact">Один нейрон получает сигналы от 10 000 других нейронов через дендриты</div><div class="art-section"><div class="art-section-title">СТРОЕНИЕ НЕЙРОНА</div><ul class="art-list"><li><b>Сома</b> — 5–100 мкм, ядро и органеллы</li><li><b>Дендриты</b> — ветви-антенны, принимают INPUT</li><li><b>Аксон</b> — длинный отросток OUTPUT, до 1 м</li><li><b>Миелин</b> — ускоряет проведение до 120 м/с</li><li><b>Синаптические окончания</b> — 1 нейрон → ~7000 синапсов</li></ul></div><div class="art-section"><div class="art-section-title">ПОТЕНЦИАЛ ДЕЙСТВИЯ</div><p class="art-p">При превышении порога (~−55 мВ) нейрон «стреляет»: за 1–2 мс напряжение скачет с −70 до +40 мВ и обратно.</p><ul class="art-list"><li>Покой: −70 мВ (K⁺ внутри, Na⁺ снаружи)</li><li>Деполяризация: Na⁺-каналы открыты → ток внутрь</li><li>Реполяризация: K⁺-каналы → ток наружу</li><li>Рефрактерность: ~2 мс (нельзя выстрелить снова)</li></ul></div><div class="art-fact">⚡ Мозг генерирует до 70 000 потенциалов/с на 100 000 нейронов</div>`},
+  synapse:{title:'Синапс',sub:'Место передачи нервного импульса',html:`<div class="art-fact">~100 триллионов синапсов — в 1000 раз больше, чем звёзд в Млечном Пути</div><div class="art-section"><div class="art-section-title">КАК РАБОТАЕТ СИНАПС</div><ul class="art-list"><li>Импульс достигает пресинаптического окончания</li><li>Ca²⁺-каналы открываются → везикулы сливаются с мембраной</li><li>Нейромедиатор выходит в щель (20–40 нм)</li><li>Связывается с рецепторами → открываются ионные каналы</li></ul></div><div class="art-section"><div class="art-section-title">НЕЙРОМЕДИАТОРЫ</div><ul class="art-list"><li>🟢 Глутамат — возбуждение (80% синапсов)</li><li>🔵 ГАМК — торможение, тревога, сон</li><li>🟡 Дофамин — вознаграждение, движение</li><li>🟠 Серотонин — настроение, аппетит</li><li>⚡ Ацетилхолин — внимание, память</li></ul></div><div class="art-section"><div class="art-section-title">ПЛАСТИЧНОСТЬ (LTP)</div><p class="art-p">Повторная активация синапса его усиливает — основа обучения. Правило Хебба: «Нейроны, активирующиеся вместе, связываются вместе».</p></div>`},
+  memory:{title:'Память',sub:'Хранение и воспроизведение информации',html:`<div class="art-section"><div class="art-section-title">ТИПЫ ПАМЯТИ</div><ul class="art-list"><li><b>Рабочая</b> — 7±2 элемента, секунды, префронтальная кора</li><li><b>Декларативная</b> — факты/события, гиппокамп → кора</li><li><b>Процедурная</b> — навыки, базальные ганглии + мозжечок</li><li><b>Эмоциональная</b> — миндалина, формируется быстро и прочно</li></ul></div><div class="art-section"><div class="art-section-title">КОНСОЛИДАЦИЯ</div><ul class="art-list"><li>Кодирование: гиппокамп, LTP-механизм</li><li>Консолидация: во сне медленные волны переносят след в кору</li><li>Хранение: распределено по коре (не «одна папка»)</li><li>Извлечение: реактивация тех же нейронных паттернов</li></ul></div><div class="art-fact">💡 Во сне гиппокамп «проигрывает» день — именно поэтому сон критичен для обучения</div>`},
+  consciousness:{title:'Сознание',sub:'Как мозг порождает субъективный опыт',html:`<div class="art-warn">⚠️ Сознание — нерешённая проблема науки. Здесь ведущие теории.</div><div class="art-section"><div class="art-section-title">ТЕОРИЯ ГРП (GLOBAL WORKSPACE)</div><p class="art-p">Сознание возникает, когда информация «транслируется» в глобальное рабочее пространство — широко распределённую нейронную сеть.</p><ul class="art-list"><li>Ключевые структуры: префронтальная и теменная кора</li><li>«Вспышки» синхронной активности (40 Гц, гамма)</li></ul></div><div class="art-section"><div class="art-section-title">ТЕОРИЯ IIT (ИНТЕГРИРОВАННАЯ ИНФОРМАЦИЯ)</div><p class="art-p">Сознание = количество интегрированной информации (Φ). Система сознательна, если создаёт информацию свыше суммы частей.</p><ul class="art-list"><li>Φ мозга >> Φ любого компьютера той же сложности (пока)</li><li>Объясняет, почему мозжечок (69B нейронов) почти не участвует в сознании</li></ul></div><div class="art-section"><div class="art-section-title">НКС — НЕЙРОННЫЕ КОРРЕЛЯТЫ</div><ul class="art-list"><li>Задняя горячая зона коры: P3 волна, ~300 мс</li><li>Таламо-кортикальные петли: рекуррентные сигналы</li><li>Синхронизация γ (30–80 Гц): «связывание» восприятия</li></ul></div>`},
+  digitize:{title:'Оцифровка мозга',sub:'Путь к цифровому сознанию',html:`<div class="art-fact">🎯 Цель: точная цифровая модель мозга, способная к сознательному опыту</div><div class="art-section"><div class="art-section-title">ЭТАПЫ ОЦИФРОВКИ</div><div class="digit-step"><div class="digit-num">1</div><div class="digit-text"><b>Коннектомика</b> — полная карта синаптических связей. C.elegans ✓, мышь в процессе, человек ~2040+</div></div><div class="digit-step"><div class="digit-num">2</div><div class="digit-text"><b>Мультимасштабная симуляция</b> — от ионных каналов до поведения. Blue Brain: 31 000 нейронов (2015)</div></div><div class="digit-step"><div class="digit-num">3</div><div class="digit-text"><b>Нейроморфные чипы</b> — Intel Loihi 2 (2.3B нейронов), в ~1000 раз эффективнее GPU</div></div><div class="digit-step"><div class="digit-num">4</div><div class="digit-text"><b>Mind Uploading</b> — последовательное замещение нейронов или полное сканирование + реконструкция</div></div><div class="digit-step"><div class="digit-num">5</div><div class="digit-text"><b>Верификация сознания</b> — IIT Φ-тест, расширенный тест Тьюринга, субъективный отчёт</div></div></div><div class="art-section"><div class="art-section-title">КЛЮЧЕВЫЕ ТЕХНОЛОГИИ</div><ul class="art-list"><li>fMRI — активность регионов, 1 мм / 1 с</li><li>ЭЭГ/MEG — электрика, 1 мс</li><li>Кальциевая визуализация — отдельные нейроны in vivo</li><li>Электронная микроскопия — синапсы (нм)</li><li>BCI Neuralink — 1024 электрода (2024)</li></ul></div>`},
+  networks:{title:'Функциональные сети',sub:'Как регионы работают вместе',html:`<div class="art-fact">🔗 Мозг организован не по регионам, а по сетям — ансамблям взаимодействующих зон</div><div class="art-section"><div class="art-section-title">СЕТЬ ПАССИВНОГО РЕЖИМА (ДСС)</div><p class="art-p">Активна в состоянии покоя: мечтания, самоанализ, планирование будущего. Отключается при выполнении задач.</p><ul class="art-list"><li>Префронтальная кора, поясная, теменные, гиппокамп</li><li>Связана с нарративным «Я», эпизодической памятью</li><li>Гиперактивна при депрессии и шизофрении</li></ul></div><div class="art-section"><div class="art-section-title">СЕНСОМОТОРНАЯ СЕТЬ (СМС)</div><p class="art-p">Координирует движение и ощущения тела. Активна при любом произвольном движении.</p><ul class="art-list"><li>Моторная кора (М1), SMA, мозжечок</li><li>Сохраняется даже во сне (моторные воспоминания)</li></ul></div><div class="art-section"><div class="art-section-title">ВЕНТРАЛЬНАЯ СЕТЬ ВНИМАНИЯ</div><p class="art-p">Перехватывает внимание на неожиданные, важные стимулы. Правополушарная.</p><ul class="art-list"><li>Височно-теменной узел (ВТУ), лобная кора, островок</li><li>Работает как «сигнализация» для DMN и дорсальной сети</li></ul></div><div class="art-section"><div class="art-section-title">fMRI И СЕТИ</div><p class="art-p">BOLD-сигнал (Blood Oxygen Level-Dependent) показывает активность регионов. Нажмите кнопку fMRI вверху, чтобы включить режим тепловой карты.</p></div>`},
+};
+const ENC_TREE={
+  ru:[{id:'overview',label:'🧠 Обзор мозга',cat:true},{id:'neuron',label:'Нейрон и потенциал действия',dot:'#4fc3f7'},{id:'synapse',label:'Синапс и нейромедиаторы',dot:'#50e8a0'},{id:'memory',label:'Память',dot:'#ffb74d'},{id:'consciousness',label:'Сознание',dot:'#ce93d8'},{id:'digitize',label:'Оцифровка мозга 🎯',dot:'#ffcc50'},{id:'networks',label:'Функциональные сети 🔗',dot:'#ff8c42'}],
+  en:[{id:'overview',label:'🧠 Brain Overview',cat:true},{id:'neuron',label:'Neuron & Action Potential',dot:'#4fc3f7'},{id:'synapse',label:'Synapse & Neurotransmitters',dot:'#50e8a0'},{id:'memory',label:'Memory',dot:'#ffb74d'},{id:'consciousness',label:'Consciousness',dot:'#ce93d8'},{id:'digitize',label:'Brain Digitization 🎯',dot:'#ffcc50'},{id:'networks',label:'Functional Networks 🔗',dot:'#ff8c42'}]
+};
+
+// ══════════════════════════════════════════════════════════════════
+// ENCYCLOPEDIA (EN)
+// ══════════════════════════════════════════════════════════════════
+const ENC_EN = {
+  overview:{title:'Human Brain',sub:'The most complex organ in the Universe',html:`<div class="art-fact">🧠 86 billion neurons · 100 trillion synapses · 1.4 kg · 20 W</div><div class="art-section"><div class="art-section-title">WHAT IS THE BRAIN</div><p class="art-p">The brain is the central organ of the nervous system. It controls the body, processes information, stores memories and generates consciousness.</p><p class="art-p">One cubic millimeter of cortex contains ~100,000 neurons and ~1 billion synaptic connections.</p></div><div class="art-section"><div class="art-section-title">ANATOMICAL LOBES</div><ul class="art-list"><li><b>Frontal</b> — planning, speech, personality, movement</li><li><b>Parietal</b> — touch, space, arithmetic</li><li><b>Temporal</b> — hearing, memory, face and speech recognition</li><li><b>Occipital</b> — vision (primary cortex V1–V5)</li><li><b>Cerebellum</b> — coordination, fine motor control</li><li><b>Brainstem</b> — breathing, heart rate, wakefulness</li></ul></div><div class="art-section"><div class="art-section-title">WHY IS THE BRAIN FOLDED?</div><p class="art-p">Gyri (ridges) and sulci (grooves) allow ~2500 cm² of surface to fit inside the skull. Without folding the cortex would be the size of a pillowcase. Deep grooves are called fissures — the Sylvian fissure separates the frontal/parietal lobes from the temporal lobe.</p></div>`},
+  neuron:{title:'Neuron',sub:'Basic unit of the nervous system',html:`<div class="art-fact">One neuron receives signals from 10,000 others via dendrites</div><div class="art-section"><div class="art-section-title">NEURON STRUCTURE</div><ul class="art-list"><li><b>Soma</b> — 5–100 µm, nucleus and organelles</li><li><b>Dendrites</b> — branching antennae, receive INPUT</li><li><b>Axon</b> — long OUTPUT fiber, up to 1 m</li><li><b>Myelin</b> — speeds conduction to 120 m/s</li><li><b>Synaptic terminals</b> — 1 neuron → ~7,000 synapses</li></ul></div><div class="art-section"><div class="art-section-title">ACTION POTENTIAL</div><p class="art-p">When threshold (~−55 mV) is exceeded, the neuron fires: within 1–2 ms voltage spikes from −70 to +40 mV and back.</p><ul class="art-list"><li>Rest: −70 mV (K⁺ inside, Na⁺ outside)</li><li>Depolarization: Na⁺ channels open → inward current</li><li>Repolarization: K⁺ channels → outward current</li><li>Refractory: ~2 ms (cannot fire again)</li></ul></div><div class="art-fact">⚡ The brain generates up to 70,000 potentials/s across 100,000 neurons</div>`},
+  synapse:{title:'Synapse',sub:'The site of nerve impulse transmission',html:`<div class="art-fact">~100 trillion synapses — 1,000× more than stars in the Milky Way</div><div class="art-section"><div class="art-section-title">HOW A SYNAPSE WORKS</div><ul class="art-list"><li>Impulse reaches the presynaptic terminal</li><li>Ca²⁺ channels open → vesicles fuse with the membrane</li><li>Neurotransmitter released into the cleft (20–40 nm)</li><li>Binds receptors → ion channels open</li></ul></div><div class="art-section"><div class="art-section-title">NEUROTRANSMITTERS</div><ul class="art-list"><li>🟢 Glutamate — excitation (80% of synapses)</li><li>🔵 GABA — inhibition, anxiety, sleep</li><li>🟡 Dopamine — reward, movement</li><li>🟠 Serotonin — mood, appetite</li><li>⚡ Acetylcholine — attention, memory</li></ul></div><div class="art-section"><div class="art-section-title">PLASTICITY (LTP)</div><p class="art-p">Repeated activation strengthens a synapse — the basis of learning. Hebb's rule: "Neurons that fire together wire together."</p></div>`},
+  memory:{title:'Memory',sub:'Storage and retrieval of information',html:`<div class="art-section"><div class="art-section-title">TYPES OF MEMORY</div><ul class="art-list"><li><b>Working</b> — 7±2 items, seconds, prefrontal cortex</li><li><b>Declarative</b> — facts/events, hippocampus → cortex</li><li><b>Procedural</b> — skills, basal ganglia + cerebellum</li><li><b>Emotional</b> — amygdala, fast and durable encoding</li></ul></div><div class="art-section"><div class="art-section-title">CONSOLIDATION</div><ul class="art-list"><li>Encoding: hippocampus, LTP mechanism</li><li>Consolidation: slow waves during sleep transfer traces to cortex</li><li>Storage: distributed across cortex (no "single folder")</li><li>Retrieval: reactivation of the same neural patterns</li></ul></div><div class="art-fact">💡 During sleep the hippocampus "replays" the day — that's why sleep is critical for learning</div>`},
+  consciousness:{title:'Consciousness',sub:'How the brain generates subjective experience',html:`<div class="art-warn">⚠️ Consciousness is an unsolved problem in science. These are the leading theories.</div><div class="art-section"><div class="art-section-title">GLOBAL WORKSPACE THEORY (GWT)</div><p class="art-p">Consciousness arises when information is "broadcast" into a global workspace — a widely distributed neural network.</p><ul class="art-list"><li>Key structures: prefrontal and parietal cortex</li><li>"Ignition" bursts of synchronized activity (40 Hz, gamma)</li></ul></div><div class="art-section"><div class="art-section-title">INTEGRATED INFORMATION THEORY (IIT)</div><p class="art-p">Consciousness = amount of integrated information (Φ). A system is conscious if it generates more information than the sum of its parts.</p><ul class="art-list"><li>Brain Φ >> Φ of any computer of equal complexity (so far)</li><li>Explains why the cerebellum (69B neurons) barely contributes to consciousness</li></ul></div><div class="art-section"><div class="art-section-title">NEURAL CORRELATES OF CONSCIOUSNESS (NCC)</div><ul class="art-list"><li>Posterior hot zone of cortex: P3 wave, ~300 ms</li><li>Thalamocortical loops: recurrent signaling</li><li>γ synchrony (30–80 Hz): perceptual "binding"</li></ul></div>`},
+  digitize:{title:'Brain Digitization',sub:'The path to digital consciousness',html:`<div class="art-fact">🎯 Goal: precise digital brain model capable of conscious experience</div><div class="art-section"><div class="art-section-title">DIGITIZATION STEPS</div><div class="digit-step"><div class="digit-num">1</div><div class="digit-text"><b>Connectomics</b> — complete map of synaptic connections. C.elegans ✓, mouse in progress, human ~2040+</div></div><div class="digit-step"><div class="digit-num">2</div><div class="digit-text"><b>Multi-scale simulation</b> — from ion channels to behavior. Blue Brain: 31,000 neurons (2015)</div></div><div class="digit-step"><div class="digit-num">3</div><div class="digit-text"><b>Neuromorphic chips</b> — Intel Loihi 2 (2.3B neurons), ~1000× more efficient than GPU</div></div><div class="digit-step"><div class="digit-num">4</div><div class="digit-text"><b>Mind Uploading</b> — sequential neuron replacement or full scan + reconstruction</div></div><div class="digit-step"><div class="digit-num">5</div><div class="digit-text"><b>Consciousness verification</b> — IIT Φ-test, extended Turing test, subjective report</div></div></div><div class="art-section"><div class="art-section-title">KEY TECHNOLOGIES</div><ul class="art-list"><li>fMRI — region activity, 1 mm / 1 s</li><li>EEG/MEG — electrical, 1 ms</li><li>Calcium imaging — individual neurons in vivo</li><li>Electron microscopy — synapses (nm)</li><li>BCI Neuralink — 1024 electrodes (2024)</li></ul></div>`},
+  networks:{title:'Functional Networks',sub:'How regions work together',html:`<div class="art-fact">🔗 The brain is organized not by regions but by networks — ensembles of interacting zones</div><div class="art-section"><div class="art-section-title">DEFAULT MODE NETWORK (DMN)</div><p class="art-p">Active at rest: daydreaming, self-reflection, planning. Deactivates during task performance.</p><ul class="art-list"><li>Prefrontal cortex, cingulate, parietal, hippocampus</li><li>Related to narrative "self", episodic memory</li><li>Hyperactive in depression and schizophrenia</li></ul></div><div class="art-section"><div class="art-section-title">SENSORIMOTOR NETWORK (SMN)</div><p class="art-p">Coordinates movement and body sensation. Active during any voluntary movement.</p><ul class="art-list"><li>Motor cortex (M1), SMA, cerebellum</li><li>Persists during sleep (motor memories)</li></ul></div><div class="art-section"><div class="art-section-title">VENTRAL ATTENTION NETWORK</div><p class="art-p">Captures attention for unexpected, salient stimuli. Right-hemisphere dominant.</p><ul class="art-list"><li>Temporoparietal junction, frontal cortex, insula</li><li>Acts as an "alarm" for DMN and dorsal network</li></ul></div><div class="art-section"><div class="art-section-title">fMRI AND NETWORKS</div><p class="art-p">The BOLD signal (Blood Oxygen Level-Dependent) reveals region activity. Press the fMRI button above to enable the heatmap mode.</p></div>`},
+};
+
+// ══════════════════════════════════════════════════════════════════
+// BRAIN STATES
+// ══════════════════════════════════════════════════════════════════
+const STATES={
+  awake:{name:'БОДРСТВОВАНИЕ',nameEn:'WAKEFULNESS',eegHz:10,eegAmp:1.0,actBase:.72,color:'#50e8a0',bg:0x050508,bands:'Альфа 8–13 Гц',bandsEn:'Alpha 8–13 Hz'},
+  sleep:{name:'СОН',          nameEn:'SLEEP',       eegHz:2, eegAmp:1.8,actBase:.22,color:'#7080ff',bg:0x050820,bands:'Дельта 0.5–4 Гц',bandsEn:'Delta 0.5–4 Hz'},
+  medit:{name:'МЕДИТАЦИЯ',    nameEn:'MEDITATION',  eegHz:7, eegAmp:.8, actBase:.55,color:'#e8c050',bg:0x070a05,bands:'Тета 4–8 Гц',bandsEn:'Theta 4–8 Hz'},
+  stress:{name:'СТРЕСС',      nameEn:'STRESS',      eegHz:22,eegAmp:.55,actBase:.88,color:'#ff6060',bg:0x090508,bands:'Бета/Гамма 15–40 Гц',bandsEn:'Beta/Gamma 15–40 Hz'},
+};
+let curState='awake';
+
+// ══════════════════════════════════════════════════════════════════
+// REGIONS
+// ══════════════════════════════════════════════════════════════════
+const REGIONS=[
+  {key:'frontal-l',   name:'Лобная (Л)',      nameEn:'Frontal (L)',        color:'#4fc3f7',hex:0x4fc3f7,pos:[-0.75,0.60,1.10],ba:'BA4,6,8-10,44,45',role:'Зона Брока, двигат. кора, ВПФ',fn:'Речь, планирование, личность',dmg:'Потеря речи (афазия Брока), снижение воли'},
+  {key:'frontal-r',   name:'Лобная (П)',      nameEn:'Frontal (R)',        color:'#29b6f6',hex:0x29b6f6,pos:[0.75,0.60,1.10], ba:'BA4,6,8-10',     role:'Моторная кора, внимание',     fn:'Двигат. контроль, внимание',    dmg:'Контралатеральный парез'},
+  {key:'parietal-l',  name:'Теменная (Л)',    nameEn:'Parietal (L)',       color:'#81c784',hex:0x81c784,pos:[-0.68,0.82,-0.05],ba:'BA1-3,5,7,39,40',role:'Соматосенсорная кора',        fn:'Тактил., пространство, счёт',   dmg:'Апраксия, акалькулия'},
+  {key:'parietal-r',  name:'Теменная (П)',    nameEn:'Parietal (R)',       color:'#66bb6a',hex:0x66bb6a,pos:[0.68,0.82,-0.05], ba:'BA1-3,5,7',     role:'Пространств. ориентация',     fn:'Визуально-пространств. навыки', dmg:'Анозогнозия, игнорирование'},
+  {key:'temporal-l',  name:'Височная (Л)',    nameEn:'Temporal (L)',       color:'#ffb74d',hex:0xffb74d,pos:[-1.05,-0.12,0.30],ba:'BA20-22,38,41,42',role:'Зона Вернике, слух, память',  fn:'Понимание речи, слух',          dmg:'Афазия Вернике (непонимание)'},
+  {key:'temporal-r',  name:'Височная (П)',    nameEn:'Temporal (R)',       color:'#ffa726',hex:0xffa726,pos:[1.05,-0.12,0.30], ba:'BA20-22,38',    role:'Музыка, лица, интонация',     fn:'Узнавание лиц, музыка',         dmg:'Прозопагнозия'},
+  {key:'occipital',   name:'Затылочная (V1)', nameEn:'Occipital (V1)',     color:'#ef5350',hex:0xef5350,pos:[0,0.25,-1.38],    ba:'BA17',          role:'Первичная зрит. кора',        fn:'Базовая обработка зрения',      dmg:'Корковая слепота'},
+  {key:'cingulate',   name:'Поясная кора',    nameEn:'Cingulate Cortex',   color:'#ce93d8',hex:0xce93d8,pos:[0,0.88,0.38],     ba:'BA24,25,32,33', role:'Конфликт, боль, эмоции',      fn:'Мониторинг ошибок, аффект',     dmg:'Апатия, хрон. боль'},
+  {key:'motor-l',     name:'Моторная (Л)',    nameEn:'Motor Cortex (L)',   color:'#4dd0e1',hex:0x4dd0e1,pos:[-0.70,0.86,0.48], ba:'BA4',           role:'Первичная двигат. кора',      fn:'Произвольное движение (пр.)',   dmg:'Паралич правой стороны'},
+  {key:'motor-r',     name:'Моторная (П)',    nameEn:'Motor Cortex (R)',   color:'#26c6da',hex:0x26c6da,pos:[0.70,0.86,0.48],  ba:'BA4',           role:'Первичная двигат. кора',      fn:'Произвольное движение (лев.)', dmg:'Паралич левой стороны'},
+  {key:'insula-l',    name:'Островок (Л)',    nameEn:'Insula (L)',         color:'#f48fb1',hex:0xf48fb1,pos:[-0.90,0.18,0.35], ba:'BA13',          role:'Интероцепция, боль',          fn:'Ощущение тела изнутри',         dmg:'Потеря чувства боли'},
+  {key:'insula-r',    name:'Островок (П)',    nameEn:'Insula (R)',         color:'#f06292',hex:0xf06292,pos:[0.90,0.18,0.35],  ba:'BA13',          role:'Отвращение, эмпатия',         fn:'Социальные эмоции',             dmg:'Снижение эмпатии'},
+  {key:'cerebellum',  name:'Мозжечок',        nameEn:'Cerebellum',         color:'#b39ddb',hex:0xb39ddb,pos:[0,-0.92,-1.22],   ba:'—',             role:'Тонкая моторика, баланс',     fn:'Координация, моторное обучение',dmg:'Атаксия, нарушение координации'},
+  {key:'brainstem',   name:'Ствол мозга',     nameEn:'Brainstem',          color:'#ff7043',hex:0xff7043,pos:[0,-1.48,-0.52],   ba:'—',             role:'Жизнеобеспечение',            fn:'Дыхание, ЧСС, бодрствование',  dmg:'Кома, нарушение дыхания'},
+  {key:'thalamus',    name:'Таламус',          color:'#26c6da',hex:0x26c6da,pos:[0,0.14,0.02],     ba:'—',             role:'Сенсорное реле',              fn:'Переключение всех сигналов',    dmg:'Нарушение сна (FFI), кома'},
+  {key:'hippocampus-l',name:'Гиппокамп (Л)',  color:'#9ccc65',hex:0x9ccc65,pos:[-0.65,-0.18,-0.30],ba:'BA28,34-36',   role:'Долгосрочная память, навигация',fn:'Консолидация воспоминаний',   dmg:'Антероградная амнезия (H.M.)'},
+  {key:'hippocampus-r',name:'Гиппокамп (П)',  color:'#7cb342',hex:0x7cb342,pos:[0.65,-0.18,-0.30], ba:'BA28,34-36',   role:'Пространственная карта',      fn:'GPS мозга, эпизодич. память',   dmg:'Нарушение простр. памяти'},
+  {key:'amygdala-l',  name:'Миндалина (Л)',   color:'#ef5350',hex:0xef5350,pos:[-0.68,-0.14,0.38], ba:'—',             role:'Страх, тревога',              fn:'Эмоц. обработка угроз',         dmg:'Синдром Урбаха-Вите'},
+  {key:'amygdala-r',  name:'Миндалина (П)',   color:'#e53935',hex:0xe53935,pos:[0.68,-0.14,0.38],  ba:'—',             role:'Эмоц. реакция',               fn:'Эмоциональная память',          dmg:'Снижение интенсивности эмоций'},
+  {key:'basal-ganglia',name:'Базальные ганглии',color:'#80cbc4',hex:0x80cbc4,pos:[0.25,0.04,0.32],ba:'—',              role:'Двигат. контроль',            fn:'Отбор движений, привычки',      dmg:'Паркинсон, Хантингтон'},
+  {key:'prefrontal',  name:'Префронтальная',  color:'#80deea',hex:0x80deea,pos:[0,0.72,1.58],      ba:'BA9-12,46,47',  role:'Высшие когнитивные функции',  fn:'Рабочая память, решения, «Я»',  dmg:'ПТСР, депрессия, СДВГ'},
+  {key:'sma',         name:'Доп. моторная',   color:'#80d8ff',hex:0x80d8ff,pos:[0,0.88,0.58],      ba:'BA6',           role:'Планирование движений',       fn:'Подготовка к действию',         dmg:'Синдром чужой руки'},
+];
+
+const NETWORKS={
+  dmn:{name:'ДСС — Пассивный режим',nameEn:'Default Mode Network',color:'#ff8c42',nodes:['prefrontal','parietal-l','parietal-r','hippocampus-l','hippocampus-r','cingulate'],desc:'Активна в покое: размышления о себе, планирование, вспоминание',descEn:'Active at rest: self-reflection, planning, autobiographical memory'},
+  smn:{name:'Сенсомоторная сеть',   nameEn:'Sensorimotor Network',color:'#42d4f4',nodes:['motor-l','motor-r','sma','cerebellum'],desc:'Контроль движений и ощущений тела',descEn:'Voluntary movement control and body sensation'},
+  van:{name:'Вентр. сеть внимания', nameEn:'Ventral Attention Network',color:'#f442c5',nodes:['temporal-l','temporal-r','frontal-l','frontal-r','insula-l','insula-r'],desc:'Перехватывает внимание на важные стимулы',descEn:'Captures attention for unexpected salient stimuli'},
+  visual:{name:'Зрительная сеть',   nameEn:'Visual Network',color:'#ff4242',nodes:['occipital'],desc:'Обработка визуальной информации',descEn:'Visual information processing'},
+};
+
+// ══════════════════════════════════════════════════════════════════
+// THREE.JS SETUP
+// ══════════════════════════════════════════════════════════════════
+const canvas=document.getElementById('c'), wrap=document.getElementById('cw');
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x050508);
+const camera=new THREE.PerspectiveCamera(42,1,0.1,100);
+camera.position.set(0,0.3,5.8); camera.lookAt(0,0,0);
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.localClippingEnabled=true;
+
+function resize(){
+  const w=wrap.clientWidth,h=wrap.clientHeight;
+  renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix();
+  const ll=document.getElementById('lc2'); ll.width=w; ll.height=h;
+  const no=document.getElementById('neuron-overlay'); no.width=w; no.height=h;
+  const ee=document.getElementById('eeg'); ee.width=ee.offsetWidth||240; ee.height=44;
+}
+resize(); window.addEventListener('resize',resize);
+
+// Lights — FIXED: declare, position, then add
+const hemi=new THREE.HemisphereLight(0xfff4f0,0x331008,0.55); scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xfff8f0,1.3); sun.position.set(3,5,4); scene.add(sun);
+const fill=new THREE.DirectionalLight(0xc0d8ff,0.45); fill.position.set(-4,0.5,-3); scene.add(fill);
+const rim=new THREE.PointLight(0xff7040,0.32,18); rim.position.set(0,-4,-3); scene.add(rim);
+const topL=new THREE.DirectionalLight(0xffffff,0.30); topL.position.set(0,8,0); scene.add(topL);
+
+// ══════════════════════════════════════════════════════════════════
+// NOISE FUNCTIONS
+// ══════════════════════════════════════════════════════════════════
+const fract=x=>x-Math.floor(x);
+const h3=(x,y,z)=>fract(Math.sin(x*127.1+y*311.7+z*74.7)*43758.5453);
+function vn(x,y,z){
+  const ix=Math.floor(x),iy=Math.floor(y),iz=Math.floor(z);
+  const fx=x-ix,fy=y-iy,fz=z-iz;
+  const ux=fx*fx*(3-2*fx),uy=fy*fy*(3-2*fy),uz=fz*fz*(3-2*fz);
+  return h3(ix,iy,iz)*(1-ux)*(1-uy)*(1-uz)+h3(ix+1,iy,iz)*ux*(1-uy)*(1-uz)+
+    h3(ix,iy+1,iz)*(1-ux)*uy*(1-uz)+h3(ix+1,iy+1,iz)*ux*uy*(1-uz)+
+    h3(ix,iy,iz+1)*(1-ux)*(1-uy)*uz+h3(ix+1,iy,iz+1)*ux*(1-uy)*uz+
+    h3(ix,iy+1,iz+1)*(1-ux)*uy*uz+h3(ix+1,iy+1,iz+1)*ux*uy*uz;
+}
+function fbm(x,y,z,oct){let v=0,a=0.5,f=1.9;for(let i=0;i<oct;i++){v+=a*(vn(x*f,y*f,z*f)*2-1);a*=0.52;f*=2.05;}return v;}
+
+// ══════════════════════════════════════════════════════════════════
+// BRAIN GEOMETRY v44 — Anatomically Realistic
+// ══════════════════════════════════════════════════════════════════
+function makeHemi(side) {
+  const geo = new THREE.SphereGeometry(1, 128, 96);
+  const a = geo.attributes.position.array;
+  const n = geo.attributes.position.count;
+  const cols = new Float32Array(n * 3);
+  const seed = side * 0.31;
+
+  for (let i = 0; i < n; i++) {
+    let x = a[i*3], y = a[i*3+1], z = a[i*3+2];
+
+    // ── Step 1: Realistic brain ellipsoid (NOT a sphere)
+    // Real brain: elongated front-to-back, wider L-R than tall
+    x *= 0.91;   // L-R width
+    y *= 0.68;   // height — brain is not very tall
+    z *= 1.24;   // front-back — significantly elongated
+
+    // Posterior tilt: back of brain hangs slightly lower
+    y += z * (-0.14);
+
+    // Flatten the top (interhemispheric region)
+    const topFlatten = Math.max(0, y - 0.30);
+    y -= topFlatten * 0.18;
+
+    // ── Step 2: Temporal lobe — hangs down on lateral sides
+    // Real brain: temporal lobe drops significantly below the Sylvian fissure
+    const normX = x / 0.91;
+    const normY = y / 0.68;
+    const isTempLateral = Math.max(0, (Math.abs(normX) - 0.36) / 0.64);
+    const isTempLow     = Math.max(0, (-normY - 0.05) / 0.60);
+    const isTempFront   = Math.max(0, 1.0 - Math.abs((z / 1.24) - 0.02) / 0.72);
+    const tempBulge = isTempLateral * isTempLow * isTempFront;
+    y -= tempBulge * 0.50;   // temporal lobe hangs way down
+    x += Math.sign(x) * tempBulge * 0.12;
+
+    // ── Step 3: Normalize for noise displacement
+    const len = Math.sqrt(x*x + y*y + z*z) || 1e-6;
+    const nx = x/len, ny = y/len, nz = z/len;
+
+    // ── Step 4: Directional gyri (anatomically correct orientation)
+    // Background gyri
+    const base = fbm(nx*3.2 + seed, ny*3.5, nz*2.9, 4);
+
+    // Frontal gyri run SUPERIOR-INFERIOR (vertical ridges, sin along x-axis)
+    const isFrontal = Math.max(0, (nz - 0.05) / 0.95) * Math.max(0, (ny + 0.55) / 1.05);
+    const frontalGyri = Math.sin(nx * 10.5 + seed * 1.7) * isFrontal;
+
+    // Temporal gyri run ANTERIOR-POSTERIOR (horizontal ridges, sin along z-axis)
+    const isTemp2 = Math.max(0, (Math.abs(nx) - 0.44) / 0.56) * Math.max(0, (-ny) / 0.58);
+    const tempGyri = Math.sin(nz * 9.5 + seed * 2.1) * isTemp2;
+
+    // Parietal gyri run slightly oblique
+    const isParietal = Math.max(0, (ny - 0.28) / 0.72) * Math.max(0, (-nz) / 0.55);
+    const parGyri = Math.sin(nx * 8.0 + nz * 3.0 + seed) * isParietal;
+
+    // Fine texture detail
+    const fine = fbm(nx*9.5 + seed*1.3, ny*10.5, nz*9.0, 2) * 0.30;
+
+    const d = (base*0.55 + frontalGyri*0.26 + tempGyri*0.20 + parGyri*0.18 + fine) * 0.158;
+
+    x += nx*d; y += ny*d; z += nz*d;
+
+    // ── Step 5: Vertex colors (ambient occlusion simulation)
+    // Sulcus = dark pink-gray, Gyrus = bright pinkish-cream
+    const t = Math.max(0, Math.min(1, (d + 0.095) / 0.190));
+    cols[i*3]   = 0.34 + t * 0.54;
+    cols[i*3+1] = 0.16 + t * 0.42;
+    cols[i*3+2] = 0.12 + t * 0.36;
+
+    // ── Step 6: Interhemispheric (longitudinal) fissure
+    const med = Math.exp(-x*x * 26) * 0.22;
+    x *= (1 - med * 0.82);
+    y -= med * 0.08;
+    const mf = Math.exp(-x*x * 26);
+    cols[i*3]   *= (1 - mf * 0.58);
+    cols[i*3+1] *= (1 - mf * 0.58);
+    cols[i*3+2] *= (1 - mf * 0.58);
+
+    // ── Step 7: Sylvian fissure (lateral sulcus) — prominent groove
+    // Separates frontal+parietal (above) from temporal (below)
+    // Position: lateral (|x|>0.38), at height y≈-0.05 to +0.25, z from -0.2 to +0.75
+    const sX = (Math.abs(x) - 0.38) / 0.52;
+    const sY = (y + 0.08) / 0.30;
+    const sZ = (z - 0.08) / 0.62;
+    const sylv = Math.max(0, 1 - sY*sY) * Math.max(0, 1 - sZ*sZ) * Math.max(0, Math.min(1.3, sX));
+    if (sylv > 0.01) {
+      const dd = sylv * 0.30;
+      y -= dd;
+      x -= Math.sign(x) * dd * 0.55;
+      cols[i*3]   *= (1 - sylv * 0.75);
+      cols[i*3+1] *= (1 - sylv * 0.75);
+      cols[i*3+2] *= (1 - sylv * 0.75);
+    }
+
+    // ── Step 8: Central sulcus (Rolando) — divides motor from somatosensory
+    const csD = (z - 0.26) / 0.085;
+    const csH = Math.max(0, (y - 0.18) / 0.70);
+    const cs = Math.exp(-csD*csD) * csH;
+    z -= cs * 0.13;
+    cols[i*3]   *= (1 - cs * 0.40);
+    cols[i*3+1] *= (1 - cs * 0.40);
+    cols[i*3+2] *= (1 - cs * 0.40);
+
+    // ── Step 9: Parieto-occipital sulcus
+    const poD = (z + 0.58) / 0.06;
+    const poH = Math.max(0, (y - 0.04) / 0.74);
+    const po = Math.exp(-poD*poD) * poH;
+    z -= po * 0.11;
+    cols[i*3]   *= (1 - po * 0.35);
+    cols[i*3+1] *= (1 - po * 0.35);
+    cols[i*3+2] *= (1 - po * 0.35);
+
+    // ── Step 10: Calcarine sulcus (medial occipital)
+    const calMed = Math.max(0, 0.34 - Math.abs(x)) / 0.34;
+    const calZ   = (z + 0.95) / 0.10;
+    const calY   = (y - 0.0)  / 0.32;
+    const calc = Math.exp(-calZ*calZ) * Math.exp(-calY*calY) * calMed;
+    z -= calc * 0.09;
+    cols[i*3]   *= (1 - calc * 0.30);
+    cols[i*3+1] *= (1 - calc * 0.30);
+    cols[i*3+2] *= (1 - calc * 0.30);
+
+    // ── Step 11: Superior temporal sulcus
+    const stsX = (Math.abs(x) - 0.50) / 0.42;
+    const stsY = (y + 0.22) / 0.12;
+    const stsZ = (z - 0.05) / 0.58;
+    const sts = Math.exp(-stsY*stsY*3) * Math.max(0, 1 - stsZ*stsZ) * Math.max(0, Math.min(1, stsX));
+    if (sts > 0.01) {
+      y -= sts * 0.09;
+      cols[i*3]   *= (1 - sts * 0.35);
+      cols[i*3+1] *= (1 - sts * 0.35);
+      cols[i*3+2] *= (1 - sts * 0.35);
+    }
+
+    // ── Step 12: Offset to hemisphere side
+    x += side * 0.87;
+
+    a[i*3]=x; a[i*3+1]=y; a[i*3+2]=z;
+    cols[i*3]   = Math.max(0, Math.min(1, cols[i*3]));
+    cols[i*3+1] = Math.max(0, Math.min(1, cols[i*3+1]));
+    cols[i*3+2] = Math.max(0, Math.min(1, cols[i*3+2]));
+  }
+
+  geo.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+  geo.attributes.position.needsUpdate = true;
+  geo.computeVertexNormals();
+  return geo;
+}
+
+// Cerebellum with characteristic folia (fine parallel ridges)
+function makeCer() {
+  const geo = new THREE.SphereGeometry(0.54, 88, 64);
+  const a = geo.attributes.position.array;
+  const n = geo.attributes.position.count;
+  const cols = new Float32Array(n * 3);
+
+  for (let i = 0; i < n; i++) {
+    let x = a[i*3], y = a[i*3+1], z = a[i*3+2];
+
+    // Cerebellar shape: wider L-R, compressed vertically, slightly elongated
+    x *= 1.42;
+    y *= 0.65;
+    z *= 0.88;
+
+    const len = Math.sqrt(x*x + y*y + z*z) || 1e-6;
+    const nx2 = x/len, ny2 = y/len, nz2 = z/len;
+
+    // Characteristic folia: very fine ridges running L-R (perpendicular to A-P)
+    const folia  = Math.sin(nz2 * 24 + ny2 * 4) * 0.050;
+    const folia2 = Math.sin(nz2 * 50) * 0.018;
+    const bgNoise = fbm(nx2*7, ny2*7, nz2*7, 2) * 0.025;
+    const d = folia + folia2 + bgNoise;
+
+    x += nx2*d; y += ny2*d; z += nz2*d;
+
+    const t = Math.max(0, Math.min(1, (d + 0.040) / 0.110));
+    cols[i*3]   = 0.38 + t * 0.40;
+    cols[i*3+1] = 0.20 + t * 0.28;
+    cols[i*3+2] = 0.16 + t * 0.30;
+
+    // Primary fissure (divides anterior/posterior lobes)
+    const pfD = (nz2 * 5 + 1.2) / 1.0;
+    const pfH = Math.max(0, 1 - ny2*ny2 * 3);
+    const pf = Math.exp(-pfD*pfD * 0.6) * pfH;
+    y -= pf * 0.10;
+    cols[i*3]   *= (1 - pf * 0.55);
+    cols[i*3+1] *= (1 - pf * 0.55);
+    cols[i*3+2] *= (1 - pf * 0.55);
+
+    // Vermis (central lobe) slightly raised
+    const vermis = Math.exp(-x*x * 6) * 0.04;
+    y += vermis;
+
+    a[i*3]=x; a[i*3+1]=y; a[i*3+2]=z;
+    cols[i*3]   = Math.max(0, Math.min(1, cols[i*3]));
+    cols[i*3+1] = Math.max(0, Math.min(1, cols[i*3+1]));
+    cols[i*3+2] = Math.max(0, Math.min(1, cols[i*3+2]));
+  }
+
+  geo.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+  geo.attributes.position.needsUpdate = true;
+  geo.computeVertexNormals();
+  return geo;
+}
+
+const cMat = () => new THREE.MeshPhongMaterial({
+  vertexColors: true,
+  shininess: 28,
+  specular: new THREE.Color(0xffe8e0),
+  emissiveIntensity: 0
+});
+
+const brainGrp = new THREE.Group(); scene.add(brainGrp);
+const matL = cMat(), matR = cMat();
+const hemiGeoL = makeHemi(-1), hemiGeoR = makeHemi(1);
+const hemiMeshL = new THREE.Mesh(hemiGeoL, matL);
+const hemiMeshR = new THREE.Mesh(hemiGeoR, matR);
+brainGrp.add(hemiMeshL);
+brainGrp.add(hemiMeshR);
+
+const cerM = new THREE.Mesh(makeCer(), cMat());
+cerM.position.set(0, -0.88, -1.25); cerM.rotation.x = 0.20;
+brainGrp.add(cerM);
+
+// Brainstem (slightly curved cylinder)
+const bsM = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.14, 0.10, 0.92, 16),
+  new THREE.MeshPhongMaterial({color:0xb87060, shininess:16, specular:0xffe0d0})
+);
+bsM.position.set(0, -1.35, -0.60); bsM.rotation.x = 0.34;
+brainGrp.add(bsM);
+
+// Corpus callosum
+const ccM = new THREE.Mesh(
+  new THREE.TorusGeometry(0.50, 0.040, 8, 42, Math.PI),
+  new THREE.MeshPhongMaterial({color:0xd0b8a8, shininess:12, specular:0xffe0d0})
+);
+ccM.position.set(0, 0.50, 0.14); ccM.rotation.x = -0.28; ccM.rotation.z = Math.PI;
+brainGrp.add(ccM);
+
+// Ventricles
+const vMat = new THREE.MeshPhongMaterial({color:0x88ccff, transparent:true, opacity:0.35, shininess:60});
+const ventMeshes = [];
+[[-0.36, 0.34, -0.10], [0.36, 0.34, -0.10]].forEach(p => {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(0.27, 24, 18), vMat.clone());
+  m.geometry.scale(1.55, 0.80, 2.20); m.position.set(...p);
+  brainGrp.add(m); ventMeshes.push(m);
+});
+
+// Thalamus
+const tMat = new THREE.MeshPhongMaterial({color:0xc8a870, shininess:14, transparent:true, opacity:0.8});
+const thalMeshes = [];
+[[-0.21, 0.11, 0.0], [0.21, 0.11, 0.0]].forEach(p => {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(0.195, 20, 16), tMat.clone());
+  m.geometry.scale(1, 0.80, 1.30); m.position.set(...p);
+  brainGrp.add(m); thalMeshes.push(m);
+});
+
+// White matter inner shell (visible through transparent cortex)
+function makeWMGeo() {
+  const g = new THREE.SphereGeometry(0.78, 28, 20);
+  const a = g.attributes.position.array;
+  for(let i=0; i<a.length; i+=3){ a[i]*=0.91; a[i+1]*=0.68; a[i+2]*=1.24; }
+  g.attributes.position.needsUpdate=true; g.computeVertexNormals(); return g;
+}
+const wmMatL = new THREE.MeshPhongMaterial({color:0xf8f2e8, shininess:3, transparent:true, opacity:0});
+const wmMatR = new THREE.MeshPhongMaterial({color:0xf8f2e8, shininess:3, transparent:true, opacity:0});
+const wmL = new THREE.Mesh(makeWMGeo(), wmMatL); wmL.position.set(-0.87,0,0);
+const wmR = new THREE.Mesh(makeWMGeo(), wmMatR); wmR.position.set(0.87,0,0);
+brainGrp.add(wmL); brainGrp.add(wmR);
+
+brainGrp.scale.setScalar(0.97);
+brainGrp.position.y = 0.06;
+
+// ── REGION OVERLAYS ──
+const regionMsh = {}, regionAct = {};
+REGIONS.forEach(r => {
+  const m = new THREE.Mesh(
+    new THREE.SphereGeometry(0.27, 18, 14),
+    new THREE.MeshPhongMaterial({color:r.hex, emissive:r.hex, emissiveIntensity:0.4, transparent:true, opacity:0, depthWrite:false})
+  );
+  m.position.set(...r.pos); m.userData = {...r};
+  brainGrp.add(m); regionMsh[r.key] = m; regionAct[r.key] = 0.4 + Math.random()*0.5;
+});
+
+// ══════════════════════════════════════════════════════════════════
+// SURFACE COLOR MAPS
+// ══════════════════════════════════════════════════════════════════
+const origColsL = hemiGeoL.attributes.color.array.slice();
+const origColsR = hemiGeoR.attributes.color.array.slice();
+
+function computeAO(orig){
+  const ao = new Float32Array(orig.length/3);
+  for(let i=0;i<ao.length;i++) ao[i]=Math.min(1.3,(orig[i*3]+orig[i*3+1]+orig[i*3+2])/0.85);
+  return ao;
+}
+function applyAO(cols, ao){
+  const out=new Float32Array(cols.length);
+  for(let i=0;i<ao.length;i++){
+    const f=ao[i]*0.68+0.32;
+    out[i*3  ]=Math.max(0,Math.min(1,cols[i*3  ]*f));
+    out[i*3+1]=Math.max(0,Math.min(1,cols[i*3+1]*f));
+    out[i*3+2]=Math.max(0,Math.min(1,cols[i*3+2]*f));
+  }
+  return out;
+}
+const aoL=computeAO(origColsL), aoR=computeAO(origColsR);
+
+function makeFuncCols(geo, ao){
+  const p=geo.attributes.position.array, n=geo.attributes.position.count;
+  const flat=new Float32Array(n*3);
+  for(let i=0;i<n;i++){
+    const x=p[i*3],y=p[i*3+1],z=p[i*3+2]; let r,g,b;
+    if     (z>0.70)                           {r=0.25;g=0.40;b=0.92;} // Prefrontal — blue
+    else if(z>0.42&&y>0.58)                   {r=0.92;g=0.18;b=0.14;} // Primary motor — red
+    else if(z>=0.18&&z<=0.42&&y>0.60)         {r=1.00;g=0.55;b=0.00;} // Somatosensory — orange
+    else if(z>=-0.20&&z<0.18&&y>0.56)         {r=0.10;g=0.74;b=0.54;} // Parietal assoc. — teal
+    else if(z<-0.68)                           {r=0.92;g=0.90;b=0.06;} // Primary visual — yellow
+    else if(z>=-0.68&&z<-0.20&&y>0.40)        {r=0.20;g=0.78;b=0.38;} // Parieto-occipital — green
+    else if(y<0.18)                            {r=1.00;g=0.62;b=0.10;} // Temporal — orange-red
+    else                                       {r=0.50;g=0.40;b=0.80;} // Assoc. — purple
+    flat[i*3]=r; flat[i*3+1]=g; flat[i*3+2]=b;
+  }
+  return applyAO(flat,ao);
+}
+function makeBACols(geo, ao){
+  const p=geo.attributes.position.array, n=geo.attributes.position.count;
+  const flat=new Float32Array(n*3); let r,g,b;
+  for(let i=0;i<n;i++){
+    const x=p[i*3],y=p[i*3+1],z=p[i*3+2];
+    if     (z>0.42&&y>0.58)                   {r=0.94;g=0.16;b=0.12;} // BA4 primary motor
+    else if(z>=0.18&&z<=0.42&&y>0.62)         {r=1.00;g=0.50;b=0.00;} // BA1-3 somatosensory
+    else if(z>0.55&&y>0.24&&y<=0.58)          {r=0.55;g=0.28;b=0.88;} // BA6 premotor
+    else if(z>0.72)                            {r=0.20;g=0.36;b=0.90;} // BA9-12,46 prefrontal
+    else if(z>0.42&&y>0.14&&y<=0.56)          {r=0.08;g=0.72;b=0.28;} // BA44-45 Broca
+    else if(z>=-0.20&&z<0.18&&y>0.56)         {r=0.08;g=0.60;b=0.58;} // BA5,7,39,40 parietal
+    else if(z<-0.68)                           {r=0.92;g=0.90;b=0.04;} // BA17-18 primary visual
+    else if(z>=-0.68&&z<-0.22&&y>0.38)        {r=0.48;g=0.88;b=0.16;} // BA19 visual assoc.
+    else if(z>=-0.68&&z<-0.22&&y<0.20)        {r=0.88;g=0.50;b=0.08;} // BA22 Wernicke
+    else if(y<0.18&&z>=-0.22)                 {r=1.00;g=0.60;b=0.10;} // BA20-21 temporal
+    else if(Math.abs(x)<0.32&&y>0.52)         {r=0.68;g=0.20;b=0.76;} // BA24-25 cingulate
+    else                                       {r=0.50;g=0.38;b=0.78;} // Default assoc.
+    flat[i*3]=r; flat[i*3+1]=g; flat[i*3+2]=b;
+  }
+  return applyAO(flat,ao);
+}
+const funcColsL=makeFuncCols(hemiGeoL,aoL), funcColsR=makeFuncCols(hemiGeoR,aoR);
+const baColsL  =makeBACols(hemiGeoL,aoL),   baColsR  =makeBACols(hemiGeoR,aoR);
+
+let surfaceMap='anatomy';
+function setSurfaceMap(mode){
+  surfaceMap=mode;
+  ['lMA','lMF','lMB'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  document.getElementById(mode==='anatomy'?'lMA':mode==='func'?'lMF':'lMB').classList.add('on');
+  const [cL,cR]=mode==='anatomy'?[origColsL,origColsR]:mode==='func'?[funcColsL,funcColsR]:[baColsL,baColsR];
+  hemiGeoL.attributes.color.array.set(cL); hemiGeoL.attributes.color.needsUpdate=true;
+  hemiGeoR.attributes.color.array.set(cR); hemiGeoR.attributes.color.needsUpdate=true;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// LAYER CONTROL
+// ══════════════════════════════════════════════════════════════════
+let layerMode=0;
+function setLayer(n){
+  layerMode=n;
+  ['lL1','lL2','lL3','lL4','lL5'].forEach((id,i)=>document.getElementById(id).classList.toggle('on',i===n));
+  const s=S[lang];
+  // Cortex
+  const cOp=[1,0.88,0.28,0.09,0.04][n];
+  matL.transparent=matR.transparent=cOp<1; matL.opacity=matR.opacity=cOp;
+  matL.depthWrite=matR.depthWrite=cOp>0.6;
+  // Cerebellum
+  const cerOp=[1,0.85,0.45,0.28,1][n];
+  cerM.material.transparent=cerOp<1; cerM.material.opacity=cerOp;
+  // Brainstem
+  const bsOp=[1,0.80,0.45,0.35,1][n];
+  bsM.material.transparent=bsOp<1; bsM.material.opacity=bsOp;
+  // White matter
+  const wmOp=[0,0.08,0.78,0.45,0.12][n];
+  wmMatL.opacity=wmMatR.opacity=wmOp;
+  // Corpus callosum
+  const ccOp=[0.3,0.55,0.92,0.96,0.5][n]; ccM.material.transparent=true; ccM.material.opacity=ccOp;
+  // Ventricles
+  const vOp=[0.25,0.32,0.55,0.72,0.25][n];
+  ventMeshes.forEach(m=>m.material.opacity=vOp);
+  // Thalamus
+  const tOp=[0.4,0.55,0.78,1.0,0.7][n];
+  thalMeshes.forEach(m=>{m.material.opacity=tOp; m.material.transparent=tOp<1;});
+  // Subcortical overlays
+  const subOp=[0,0.04,0.18,0.50,0.22][n];
+  ['thalamus','hippocampus-l','hippocampus-r','amygdala-l','amygdala-r','basal-ganglia']
+    .forEach(k=>{if(regionMsh[k]) regionMsh[k].material.opacity=subOp;});
+  // Layer badge
+  const lb=document.getElementById('layer-badge');
+  lb.textContent=s.layers[n]+' — '+s.layerInfo[n];
+  lb.classList.toggle('vis', n>0);
+}
+
+// ── fMRI OVERLAY MESHES ──
+let fmriMode = false;
+const fmriMsh = {};
+function fmriColor(v){
+  // blue(0) → cyan(0.25) → green(0.5) → yellow(0.75) → red(1)
+  const r = v<0.5 ? 0 : (v<0.75 ? (v-0.5)*4 : 1);
+  const g = v<0.25 ? v*4 : (v<0.75 ? 1 : 1-(v-0.75)*4);
+  const b = v<0.25 ? 1 : (v<0.5 ? 1-(v-0.25)*4 : 0);
+  return new THREE.Color(r, g, b);
+}
+REGIONS.forEach(r => {
+  const m = new THREE.Mesh(
+    new THREE.SphereGeometry(0.36, 14, 10),
+    new THREE.MeshBasicMaterial({color:0xff8800, transparent:true, opacity:0, depthWrite:false, blending:THREE.AdditiveBlending})
+  );
+  m.position.set(...r.pos);
+  brainGrp.add(m);
+  fmriMsh[r.key] = m;
+});
+
+// ── SYNC ARCS (functional connectivity) ──
+const syncArcData = {};
+Object.entries(NETWORKS).forEach(([key, net]) => {
+  const arcs = [];
+  const nodes = net.nodes;
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i+1; j < nodes.length; j++) {
+      const ra = REGIONS.find(r=>r.key===nodes[i]);
+      const rb = REGIONS.find(r=>r.key===nodes[j]);
+      if (!ra || !rb) continue;
+      const pa = new THREE.Vector3(...ra.pos);
+      const pb = new THREE.Vector3(...rb.pos);
+      const mid = pa.clone().lerp(pb, 0.5).addScalar(0);
+      mid.y += 0.4 + pa.distanceTo(pb) * 0.35;
+      const curve = new THREE.QuadraticBezierCurve3(pa, mid, pb);
+      const pts = curve.getPoints(32);
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      const mat = new THREE.LineBasicMaterial({color: new THREE.Color(net.color), transparent:true, opacity:0, depthTest:false});
+      const line = new THREE.Line(geo, mat);
+      scene.add(line);
+      // spark
+      const sGeo = new THREE.BufferGeometry();
+      sGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([pa.x,pa.y,pa.z]), 3));
+      const sMat = new THREE.PointsMaterial({color: new THREE.Color(net.color), size:0.06, transparent:true, opacity:0, depthTest:false});
+      const spark = new THREE.Points(sGeo, sMat);
+      scene.add(spark);
+      arcs.push({curve, line, mat, spark, sGeo, sMat, t: Math.random()});
+    }
+  }
+  syncArcData[key] = {arcs, color: net.color};
+});
+
+// ══════════════════════════════════════════════════════════════════
+// SIGNAL PROPAGATION
+// ══════════════════════════════════════════════════════════════════
+const propWaves = [];
+let propStartTime = 0, propagationActive = false, propSourceKey = null;
+
+function startPropagation(fromKey) {
+  propWaves.length = 0;
+  propSourceKey = fromKey;
+  const fromIdx = REG_KEYS.indexOf(fromKey);
+  if (fromIdx < 0) return;
+
+  // BFS through connectivity matrix (weight > 0.35)
+  const visited = new Set([fromKey]);
+  const queue = [{key: fromKey, depth: 0, delay: 0}];
+  while (queue.length > 0) {
+    const {key, depth, delay} = queue.shift();
+    if (depth >= 3) continue;
+    const idx = REG_KEYS.indexOf(key);
+    for (let j = 0; j < N; j++) {
+      const w = CONN_MTX[idx][j];
+      const nk = REG_KEYS[j];
+      if (w > 0.35 && !visited.has(nk)) {
+        visited.add(nk);
+        const d = delay + 80 + (1 - w) * 120;
+        propWaves.push({key: nk, delay: d, phase: 0, hex: REGIONS.find(r=>r.key===nk)?.hex||0x3ab8ff});
+        queue.push({key: nk, depth: depth+1, delay: d});
+      }
+    }
+  }
+  propagationActive = true;
+  propStartTime = performance.now();
+  // Show badge
+  const pb = document.getElementById('prop-badge');
+  const r = REGIONS.find(r=>r.key===fromKey);
+  const nm = lang==='en'?(r?.nameEn||r?.name||fromKey):(r?.name||fromKey);
+  pb.textContent = (lang==='en'?'⚡ Signal from: ':'⚡ Сигнал из: ') + nm;
+  pb.classList.add('vis');
+  setTimeout(()=>pb.classList.remove('vis'), 2200);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DIGITIZATION SCANNER (sweep beam through brain)
+// ══════════════════════════════════════════════════════════════════
+const scanMat = new THREE.MeshBasicMaterial({
+  color: 0x3ab8ff, transparent: true, opacity: 0.06,
+  side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending
+});
+const scanPlane = new THREE.Mesh(new THREE.PlaneGeometry(4, 3), scanMat);
+scanPlane.rotation.x = Math.PI / 2;
+scene.add(scanPlane);
+
+let scanY = -2.2, scanDir = 1, scanProgress = 0, totalScanCycles = 0;
+
+// ── TRACTS (DTI-colored lines) ──
+const TDEFS = [
+  ['frontal-l','parietal-l'],['frontal-r','parietal-r'],
+  ['parietal-l','occipital'],['parietal-r','occipital'],
+  ['temporal-l','hippocampus-l'],['temporal-r','hippocampus-r'],
+  ['thalamus','frontal-l'],['thalamus','frontal-r'],
+  ['thalamus','occipital'],
+  ['brainstem','cerebellum'],
+  ['amygdala-l','hippocampus-l'],['amygdala-r','hippocampus-r'],
+  ['prefrontal','frontal-l'],['prefrontal','frontal-r'],
+  ['motor-l','brainstem'],['motor-r','brainstem'],
+];
+const tractGrp = new THREE.Group();
+const tractCurves = [];
+TDEFS.forEach(([a2,b2]) => {
+  const ra = REGIONS.find(r=>r.key===a2), rb = REGIONS.find(r=>r.key===b2);
+  if (!ra || !rb) return;
+  const p0 = new THREE.Vector3(...ra.pos), p1 = new THREE.Vector3(...rb.pos);
+  const mid = p0.clone().add(p1).multiplyScalar(0.5); mid.y += 0.22;
+  const curve = new THREE.QuadraticBezierCurve3(p0, mid, p1);
+  tractCurves.push(curve);
+  const dir = p1.clone().sub(p0).normalize();
+  const col = new THREE.Color(Math.abs(dir.x), Math.abs(dir.z), Math.abs(dir.y));
+  tractGrp.add(new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(curve.getPoints(28)),
+    new THREE.LineBasicMaterial({color:col, transparent:true, opacity:0.65})
+  ));
+});
+brainGrp.add(tractGrp); tractGrp.visible = false;
+
+// Particles along tracts
+const NP = tractCurves.length * 4;
+const pPos = new Float32Array(NP * 3), pData = [];
+for (let i = 0; i < NP; i++) pData.push({ci:Math.floor(i/4), t:(i%4)/4, spd:0.005+Math.random()*0.007});
+const pGeo = new THREE.BufferGeometry(); pGeo.setAttribute('position', new THREE.BufferAttribute(pPos,3));
+const pMesh = new THREE.Points(pGeo, new THREE.PointsMaterial({color:0xeeeeff, size:0.06, transparent:true, opacity:0.9}));
+brainGrp.add(pMesh); pMesh.visible = false;
+
+// ── CLIPPING ──
+const clipSag = new THREE.Plane(new THREE.Vector3(-1,0,0), 0);
+const clipAxl = new THREE.Plane(new THREE.Vector3(0,-1,0), 0.3);
+const clipCor = new THREE.Plane(new THREE.Vector3(0,0,1), 0);
+let clipMode = 'none';
+const allMats = [matL, matR, cerM.material, bsM.material, ccM.material];
+function applyClip(){
+  const planes = clipMode==='sagittal'?[clipSag]:clipMode==='axial'?[clipAxl]:clipMode==='coronal'?[clipCor]:[];
+  renderer.clippingPlanes = planes;
+  allMats.forEach(m=>{m.clippingPlanes=planes; m.side=planes.length>0?THREE.DoubleSide:THREE.FrontSide;});
+  const b=document.getElementById('clip-badge'); b.classList.toggle('vis',planes.length>0);
+  b.textContent=clipMode==='sagittal'?'САГИТ. СРЕЗ':clipMode==='axial'?'АКСИАЛЬНЫЙ СРЕЗ':clipMode==='coronal'?'КОРОН. СРЕЗ':'';
+}
+
+// ── LABELS ──
+const labCont = document.getElementById('lc'), lblEls = {};
+let labelsOn = true;
+REGIONS.forEach(r => {
+  const el = document.createElement('div'); el.className='lbl'; el.textContent=r.name; el.dataset.key=r.key;
+  labCont.appendChild(el); lblEls[r.key] = el;
+});
+const lcC = document.getElementById('lc2'), lcCtx = lcC.getContext('2d');
+function updateLabels(){
+  const rect = canvas.getBoundingClientRect(); lcCtx.clearRect(0,0,lcC.width,lcC.height);
+  if (!labelsOn){Object.values(lblEls).forEach(el=>el.style.display='none'); return;}
+  REGIONS.forEach(r=>{
+    const p = new THREE.Vector3(...r.pos).applyMatrix4(brainGrp.matrixWorld);
+    const v = p.clone().project(camera); const el = lblEls[r.key]; if (!el) return;
+    if (v.z>1){el.style.display='none'; return;}
+    const sx=(v.x+1)*rect.width/2, sy=(-v.y+1)*rect.height/2;
+    el.style.display=''; el.style.left=sx+'px'; el.style.top=sy+'px';
+    const sel=r.key===selKey, inNet=activeNet&&NETWORKS[activeNet]?.nodes.includes(r.key);
+    el.className='lbl'+(sel?' sel':inNet?' net':'');
+    lcCtx.beginPath(); lcCtx.moveTo(sx,sy); lcCtx.lineTo(sx+3,sy);
+    lcCtx.strokeStyle=sel?'rgba(58,184,255,.7)':inNet?'rgba(255,200,80,.6)':'rgba(58,184,255,.12)';
+    lcCtx.lineWidth=sel||inNet?1.5:1; lcCtx.stroke();
+    lcCtx.beginPath(); lcCtx.arc(sx,sy,sel?3:1.5,0,Math.PI*2);
+    lcCtx.fillStyle=sel?'#3ab8ff':inNet?'#ffcc50':'rgba(58,184,255,.4)'; lcCtx.fill();
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// LEFT PANEL
+// ══════════════════════════════════════════════════════════════════
+let curTab='enc', activeNet=null, curArticle='overview', curRegionKey=null;
+function switchTab(tab){
+  curTab=tab;
+  ['enc','reg','net','mtx'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('on',t===tab));
+  buildLeftPanel();
+}
+function buildLeftPanel(){
+  const body=document.getElementById('sl-body'); body.innerHTML='';
+  const s=S[lang];
+  if(curTab==='enc'){
+    const tree=(lang==='en'?ENC_EN:ENC);
+    ENC_TREE[lang].forEach(item=>{
+      if(item.cat){const d=document.createElement('div');d.className='enc-cat';d.textContent=item.label;body.appendChild(d);}
+      else{const d=document.createElement('div');d.className='enc-item';d.dataset.id=item.id;d.innerHTML=`<div class="enc-dot" style="background:${item.dot||'#3ab8ff'}"></div>${item.label}`;d.addEventListener('click',()=>showEncArticle(item.id));body.appendChild(d);}
+    });
+  } else if(curTab==='reg'){
+    const groups=[
+      {label:s.catCortex,keys:['frontal-l','frontal-r','parietal-l','parietal-r','temporal-l','temporal-r','occipital','cingulate','motor-l','motor-r','insula-l','insula-r','prefrontal','sma']},
+      {label:s.catSubcortex,keys:['thalamus','basal-ganglia','hippocampus-l','hippocampus-r','amygdala-l','amygdala-r']},
+      {label:s.catHindBrain,keys:['cerebellum','brainstem']}
+    ];
+    groups.forEach(g=>{
+      const cat=document.createElement('div'); cat.className='enc-cat'; cat.textContent=g.label; body.appendChild(cat);
+      g.keys.forEach(k=>{
+        const r=REGIONS.find(r=>r.key===k); if(!r) return;
+        const d=document.createElement('div'); d.className='enc-item'+(k===selKey?' sel':''); d.dataset.key=k;
+        d.innerHTML=`<div class="enc-dot" style="background:${r.color}"></div>${lang==='en'?(r.nameEn||r.name):r.name}`;
+        d.addEventListener('click',()=>selectRegion(k)); body.appendChild(d);
+      });
+    });
+  } else if(curTab==='net'){
+    Object.entries(NETWORKS).forEach(([key,net])=>{
+      const d=document.createElement('div'); d.className='enc-item'+(activeNet===key?' sel':''); d.dataset.key=key;
+      d.innerHTML=`<div class="enc-dot" style="background:${net.color}"></div><div>${net.name}<div style="font-size:8px;color:var(--dim);margin-top:1px">${net.nodes.length}${s.regions_lbl}</div></div>`;
+      d.addEventListener('click',()=>toggleNet(key)); body.appendChild(d);
+    });
+  } else if(curTab==='mtx'){
+    drawConnectomeMatrix(body);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ARTICLES
+// ══════════════════════════════════════════════════════════════════
+function showEncArticle(id){
+  curArticle=id; curRegionKey=null;
+  const db=(lang==='en'?ENC_EN:ENC);
+  const art=db[id]; if(!art) return;
+  document.querySelectorAll('.enc-item').forEach(el=>el.classList.toggle('sel',el.dataset.id===id));
+  document.getElementById('sr-title').textContent=art.title;
+  document.getElementById('sr-sub').textContent=art.sub;
+  document.getElementById('sr-body').innerHTML=art.html;
+  document.getElementById('s-topic').textContent=S[lang].stateTopic+' '+art.title;
+}
+
+function showRegionArticle(key){
+  curRegionKey=key; curArticle=null;
+  const r=REGIONS.find(r=>r.key===key); if(!r) return;
+  const s=S[lang];
+  document.getElementById('sr-title').textContent=lang==='en'?(r.nameEn||r.name):r.name;
+  document.getElementById('sr-sub').textContent=s.braTitle+': '+r.ba;
+  const act=Math.floor(35+Math.random()*55);
+  document.getElementById('s-topic').textContent=s.stateRegion+' '+r.name;
+  const isEn = lang==='en';
+  const lFn=isEn?'FUNCTION':'ФУНКЦИЯ', lRole=isEn?'ROLE':'РОЛЬ В МОЗГЕ', lDmg=isEn?'IF DAMAGED':'ПРИ ПОРАЖЕНИИ';
+  const lMet=isEn?'METRICS':'МЕТРИКИ', lBA=isEn?'BRODMANN AREAS':'ЗОНЫ БРОДМАНА';
+  const lAct=isEn?'Activity':'Активность', lBold=isEn?'BOLD signal':'BOLD-сигнал';
+  const lNeur=isEn?'Neurons':'Нейронов', lSyn=isEn?'Synapses':'Синапсов', lPerf=isEn?'Perfusion':'Перфузия';
+  const lMlMin=isEn?'ml/min':'мл/мин';
+  document.getElementById('sr-body').innerHTML=`
+    <div class="art-section"><div class="art-section-title">${lFn}</div><p class="art-p">${r.fn}</p></div>
+    <div class="art-section"><div class="art-section-title">${lRole}</div><p class="art-p">${r.role}</p></div>
+    <div class="art-section"><div class="art-section-title">${lDmg}</div><div class="art-warn">⚠️ ${r.dmg}</div></div>
+    <div class="art-section"><div class="art-section-title">${lMet}</div>
+      <ul class="art-list">
+        <li>${lAct}: ${act}%</li>
+        <li>${lBold}: ${(Math.random()*1.5).toFixed(2)}%</li>
+        <li>${lNeur}: ~${(Math.random()*5+0.8).toFixed(1)}B</li>
+        <li>${lSyn}: ~${Math.floor(Math.random()*200+80)}M</li>
+        <li>${lPerf}: ${Math.floor(40+Math.random()*30)} ${lMlMin}</li>
+      </ul>
+    </div>
+    <div class="art-section"><div class="art-section-title">${lBA}</div>
+      ${r.ba!=='—'?r.ba.split(',').map(b=>`<span class="art-tag art-ba">BA${b.trim()}</span>`).join(''):'<span class="art-tag">—</span>'}
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CONNECTOME MATRIX
+// ══════════════════════════════════════════════════════════════════
+const REG_KEYS = REGIONS.map(r=>r.key);
+const N = REG_KEYS.length;
+// Functional connectivity matrix (symmetric, 0-1)
+const CONN_MTX = (() => {
+  const m = [];
+  for(let i=0;i<N;i++){m[i]=[];for(let j=0;j<N;j++) m[i][j]=i===j?1:0;}
+  function link(a,b,w){const i=REG_KEYS.indexOf(a),j=REG_KEYS.indexOf(b);if(i>=0&&j>=0){m[i][j]=w;m[j][i]=w;}}
+  // Homotopic pairs
+  link('frontal-l','frontal-r',.92); link('parietal-l','parietal-r',.88);
+  link('temporal-l','temporal-r',.85); link('motor-l','motor-r',.93);
+  link('hippocampus-l','hippocampus-r',.84); link('amygdala-l','amygdala-r',.80);
+  link('insula-l','insula-r',.78);
+  // DMN
+  link('prefrontal','cingulate',.82); link('prefrontal','parietal-l',.74);
+  link('prefrontal','parietal-r',.72); link('prefrontal','hippocampus-l',.68);
+  link('cingulate','parietal-l',.70); link('cingulate','parietal-r',.70);
+  link('hippocampus-l','cingulate',.65); link('hippocampus-r','cingulate',.63);
+  // Sensorimotor
+  link('motor-l','sma',.88); link('motor-r','sma',.87);
+  link('sma','cerebellum',.72); link('motor-l','cerebellum',.65); link('motor-r','cerebellum',.63);
+  // Visual
+  link('occipital','parietal-l',.62); link('occipital','parietal-r',.61);
+  // Language
+  link('frontal-l','temporal-l',.76); link('frontal-l','parietal-l',.68);
+  link('temporal-l','hippocampus-l',.71); link('temporal-r','hippocampus-r',.69);
+  // Salience / Insula
+  link('insula-l','frontal-l',.66); link('insula-r','frontal-r',.65);
+  link('insula-l','amygdala-l',.72); link('insula-r','amygdala-r',.70);
+  // Thalamus (hub)
+  REG_KEYS.forEach((k,i)=>{if(k!=='thalamus'&&m[REG_KEYS.indexOf('thalamus')][i]===0) m[REG_KEYS.indexOf('thalamus')][i]=m[i][REG_KEYS.indexOf('thalamus')]=.35+Math.random()*.25;});
+  return m;
+})();
+
+let mtxHighlight = null;
+function drawConnectomeMatrix(container){
+  const s = S[lang];
+  const info = document.createElement('div'); info.className='mtx-legend';
+  info.textContent = s.mtxLegend;
+  container.appendChild(info);
+  const sz = 206, cell = Math.floor(sz / N);
+  const cv = document.createElement('canvas'); cv.id='mtx-canvas';
+  cv.width = N*cell; cv.height = N*cell; cv.style.margin='4px 7px';
+  container.appendChild(cv);
+  renderMatrix(cv);
+  // Labels (abbreviated)
+  const labWrap = document.createElement('div'); labWrap.style.cssText='padding:4px 8px;display:flex;flex-wrap:wrap;gap:2px;';
+  REG_KEYS.forEach((k,i)=>{
+    const r=REGIONS.find(r=>r.key===k);
+    const sp=document.createElement('span');
+    sp.style.cssText=`font-size:8px;padding:1px 5px;border-radius:8px;cursor:pointer;background:rgba(50,180,255,.08);color:var(--dim);border:1px solid ${r.color}40`;
+    sp.textContent=`${i+1}`;
+    sp.title=r.name;
+    sp.addEventListener('click',()=>{mtxHighlight=mtxHighlight===i?null:i;renderMatrix(cv);});
+    labWrap.appendChild(sp);
+  });
+  container.appendChild(labWrap);
+}
+
+function renderMatrix(cv){
+  const ctx=cv.getContext('2d'); const cell=Math.floor(cv.width/N);
+  ctx.clearRect(0,0,cv.width,cv.height);
+  for(let i=0;i<N;i++){
+    for(let j=0;j<N;j++){
+      const v=CONN_MTX[i][j];
+      const hilite=mtxHighlight!==null&&(i===mtxHighlight||j===mtxHighlight);
+      let r=0,g=0,b=0;
+      if(i===j){r=80;g=160;b=255;}
+      else if(v>0){
+        // Hot colormap: dark→purple→blue→cyan→green→yellow→red
+        const t=v;
+        r=Math.round(t<0.5?t*2*100:100+(t-.5)*2*155);
+        g=Math.round(t<0.25?0:t<0.75?(t-.25)*4*200:200-(t-.75)*4*200);
+        b=Math.round(t<0.5?200-(t)*2*180:20);
+      }
+      const alpha=hilite?(v>0?0.95:0.3):(mtxHighlight!==null?v*0.35+0.05:v*0.85+0.05);
+      ctx.fillStyle=`rgba(${r},${g},${b},${alpha})`;
+      ctx.fillRect(j*cell,i*cell,cell,cell);
+    }
+  }
+  if(mtxHighlight!==null){
+    ctx.strokeStyle='rgba(58,184,255,.9)'; ctx.lineWidth=1.5;
+    ctx.strokeRect(0,mtxHighlight*cell,N*cell,cell);
+    ctx.strokeRect(mtxHighlight*cell,0,cell,N*cell);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SELECT / NETWORK
+// ══════════════════════════════════════════════════════════════════
+let selKey=null;
+function selectRegion(key){
+  if(selKey===key){selKey=null; propagationActive=false; return;}
+  selKey=key;
+  Object.values(regionMsh).forEach(m=>{
+    m.material.color.setHex(REGIONS.find(r=>r.key===m.userData.key)?.hex||0xffffff);
+    m.material.emissive.setHex(m.material.color.getHex());
+  });
+  showRegionArticle(key); buildLeftPanel();
+  document.querySelector(`.enc-item[data-key="${key}"]`)?.scrollIntoView({block:'nearest'});
+  startPropagation(key);
+}
+
+function showNetArticle(key){
+  const net=NETWORKS[key]; if(!net) return;
+  const s=S[lang];
+  document.getElementById('sr-title').textContent=lang==='en'?net.nameEn:net.name;
+  document.getElementById('sr-sub').textContent=net.nodes.length+s.regions_lbl+' · '+s.syncNotes;
+  const nodeList=net.nodes.map(k=>{const r=REGIONS.find(r=>r.key===k);const nm=lang==='en'?(r?.nameEn||r?.name||k):(r?.name||k);return`<li style="cursor:pointer" onclick="selectRegion('${k}')">${nm}</li>`;}).join('');
+  const netDesc=lang==='en'?net.descEn:net.desc;
+  document.getElementById('sr-body').innerHTML=`<div class="art-fact">💡 ${netDesc}</div><div class="art-section"><div class="art-section-title">${lang==='en'?'NETWORK REGIONS':'РЕГИОНЫ СЕТИ'}</div><ul class="art-list">${nodeList}</ul></div><div class="art-section"><div class="art-section-title">${s.syncTitle}</div><p class="art-p">${s.syncDesc}</p></div>`;
+  document.getElementById('s-topic').textContent=s.stateNet+' '+(lang==='en'?net.nameEn:net.name);
+}
+function toggleNet(key){
+  curArticle=null; curRegionKey=null;
+  activeNet = activeNet===key ? null : key;
+  if(activeNet) showNetArticle(activeNet);
+  buildLeftPanel();
+}
+
+function setViewMode(mode){
+  viewMode=mode;
+  tractGrp.visible=mode==='connectivity';
+  pMesh.visible=mode==='connectivity';
+}
+let viewMode='anatomy';
+
+// ══════════════════════════════════════════════════════════════════
+// BUTTONS
+// ══════════════════════════════════════════════════════════════════
+const mbtns=['bAnat','bFunc','bConn'];
+function setMBtn(id,m){mbtns.forEach(b=>document.getElementById(b).classList.remove('on'));document.getElementById(id).classList.add('on');setViewMode(m);}
+document.getElementById('bAnat').addEventListener('click',()=>setMBtn('bAnat','anatomy'));
+document.getElementById('bFunc').addEventListener('click',()=>setMBtn('bFunc','functional'));
+document.getElementById('bConn').addEventListener('click',()=>setMBtn('bConn','connectivity'));
+document.getElementById('bLbl').addEventListener('click',function(){labelsOn=!labelsOn;this.classList.toggle('on',labelsOn);});
+document.getElementById('bRot').addEventListener('click',function(){autoRot=!autoRot;this.classList.toggle('on',autoRot);});
+document.getElementById('bWire').addEventListener('click',function(){wireMode=!wireMode;this.classList.toggle('on',wireMode);[matL,matR,cerM.material].forEach(m=>m.wireframe=wireMode);});
+document.getElementById('bMatrix').addEventListener('click',function(){switchTab('mtx');this.classList.add('on');});
+
+// Layer buttons
+['lL1','lL2','lL3','lL4','lL5'].forEach((id,i)=>document.getElementById(id).addEventListener('click',()=>setLayer(i)));
+
+// Surface map buttons
+document.getElementById('lMA').addEventListener('click',()=>setSurfaceMap('anatomy'));
+document.getElementById('lMF').addEventListener('click',()=>setSurfaceMap('func'));
+document.getElementById('lMB').addEventListener('click',()=>setSurfaceMap('ba'));
+['bSag','bAxl','bCor'].forEach((id,i)=>{
+  const modes=['sagittal','axial','coronal'];
+  document.getElementById(id).addEventListener('click',()=>{
+    clipMode=clipMode===modes[i]?'none':modes[i];
+    ['bSag','bAxl','bCor'].forEach(b=>document.getElementById(b).classList.remove('on'));
+    if(clipMode!=='none')document.getElementById(id).classList.add('on');
+    applyClip();
+  });
+});
+const stateMap={bAwake:'awake',bSleep:'sleep',bMedit:'medit',bStress:'stress'};
+['bAwake','bSleep','bMedit','bStress'].forEach(id=>document.getElementById(id).addEventListener('click',()=>setBrainState(stateMap[id])));
+function setBrainState(id){
+  curState=id; const st=STATES[id];
+  if(!lightMode) scene.background=new THREE.Color(st.bg);
+  const stName = lang==='en' ? st.nameEn : st.name;
+  const b=document.getElementById('badge'); b.textContent=stName; b.style.color=st.color;
+  b.style.border=`1px solid ${st.color}40`; b.style.background='rgba(0,0,0,.3)';
+  document.getElementById('eeg-band').textContent=lang==='en'?st.bandsEn:st.bands;
+  document.getElementById('s-state').textContent=S[lang].statePfx+' '+stName;
+  ['bAwake','bSleep','bMedit','bStress'].forEach(b=>document.getElementById(b).classList.remove('on'));
+  document.getElementById('b'+id.charAt(0).toUpperCase()+id.slice(1)).classList.add('on');
+}
+
+// Language toggle
+function setLang(l){
+  lang = l;
+  const s = S[lang];
+  document.getElementById('logo-sub').textContent = s.logoSub;
+  document.getElementById('lbl-neurons').textContent = s.neurons;
+  document.getElementById('lbl-synapses').textContent = s.synapses;
+  document.getElementById('lbl-activity').textContent = s.activity;
+  document.getElementById('bAnat').textContent = s.btnAnat;
+  document.getElementById('bFunc').textContent = s.btnFunc;
+  document.getElementById('bConn').textContent = s.btnConn;
+  document.getElementById('bLbl').textContent = s.btnLbl;
+  document.getElementById('bWire').textContent = s.btnWire;
+  document.getElementById('bMatrix').textContent = s.btnMatrix;
+  document.getElementById('bLang').textContent = lang==='ru'?'EN':'РУ';
+  // Tabs
+  ['enc','reg','net','mtx'].forEach((t,i)=>{document.getElementById('tab-'+t).textContent=s.tabs[i];});
+  // EEG label
+  const eegBand = document.getElementById('eeg-band');
+  document.querySelector('.eeg-t').childNodes[0].textContent = s.eegLbl+' — ';
+  // Right panel default
+  document.getElementById('sr-title').textContent = s.encTitle;
+  document.getElementById('sr-sub').textContent = s.encSub;
+  document.getElementById('lang-badge').textContent = s.langBadge;
+  // fMRI bar
+  const fb = document.getElementById('fmri-bar');
+  if(fb) fb.innerHTML=`<span>BOLD:</span><div class="fmri-scale"></div><span>${s.fmriLow} → ${s.fmriHigh}</span>`;
+  // Zoom hint
+  document.getElementById('zoom-hint').textContent = s.zoomHint;
+  // Digitization panel labels
+  ['dlbl-regions','dlbl-connect','dlbl-synapse','dlbl-bold','dlbl-scan']
+    .forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=s.digiLabels[i];});
+  // Layer row
+  document.getElementById('lbl-layers').textContent = s.layerLbl;
+  document.getElementById('lbl-map').textContent = s.mapLbl;
+  ['lL1','lL2','lL3','lL4','lL5'].forEach((id,i)=>document.getElementById(id).textContent=s.layers[i]);
+  ['lMA','lMF','lMB'].forEach((id,i)=>document.getElementById(id).textContent=s.maps[i]);
+  // Refresh state display
+  setBrainState(curState);
+  // Rebuild panel with new language
+  buildLeftPanel();
+  // Refresh right panel content in new language
+  if(curArticle) showEncArticle(curArticle);
+  else if(curRegionKey) showRegionArticle(curRegionKey);
+  else if(activeNet) showNetArticle(activeNet);
+}
+document.getElementById('bLang').addEventListener('click', function(){
+  setLang(lang==='ru'?'en':'ru');
+});
+
+// fMRI mode
+document.getElementById('bFmri').addEventListener('click', function(){
+  fmriMode = !fmriMode;
+  this.classList.toggle('on', fmriMode);
+  document.getElementById('fmri-bar').classList.toggle('vis', fmriMode);
+  if(fmriMode) showEncArticle('networks');
+});
+
+// Light / dark theme
+let lightMode = false;
+function applyTheme(){
+  document.body.classList.toggle('light', lightMode);
+  document.getElementById('bTheme').textContent = lightMode ? '🌙' : '☀';
+  if(lightMode){
+    scene.background = new THREE.Color(0xd0d8e8);
+    hemi.color.setHex(0x9ab0d8); hemi.groundColor.setHex(0xb0b8cc);
+  } else {
+    const st = STATES[curState];
+    scene.background = new THREE.Color(st.bg);
+    hemi.color.setHex(0xfff4f0); hemi.groundColor.setHex(0x331008);
+  }
+}
+document.getElementById('bTheme').addEventListener('click', function(){
+  lightMode = !lightMode;
+  applyTheme();
+});
+
+// ══════════════════════════════════════════════════════════════════
+// CAMERA + RAYCAST
+// ══════════════════════════════════════════════════════════════════
+const mouse=new THREE.Vector2();
+let rotY=0, rotX=0.08, zoom=1, mDown=false, prevX=0, prevY=0, dSX=0, dSY=0, autoRot=true, wireMode=false;
+wrap.addEventListener('mousedown',e=>{mDown=true; prevX=dSX=e.clientX; prevY=dSY=e.clientY;});
+wrap.addEventListener('mouseup',e=>{const drag=Math.abs(e.clientX-dSX)>5||Math.abs(e.clientY-dSY)>5; mDown=false; if(!drag)doClick(e);});
+wrap.addEventListener('mousemove',e=>{
+  if(mDown){rotY+=(e.clientX-prevX)*0.011; rotX+=(e.clientY-prevY)*0.011; rotX=Math.max(-.75,Math.min(.75,rotX)); prevX=e.clientX; prevY=e.clientY;}
+  doHover(e);
+});
+wrap.addEventListener('wheel',e=>{
+  e.preventDefault(); zoom*=e.deltaY>0?.92:1.08; zoom=Math.max(.3,Math.min(4,zoom));
+  camera.position.z=5.8/zoom;
+  document.getElementById('zoom-hint').classList.toggle('vis',zoom>2.5);
+},{passive:false});
+wrap.addEventListener('mouseleave',hideTooltip);
+const raycaster=new THREE.Raycaster(), tt=document.getElementById('tt');
+function gm(e){const r=canvas.getBoundingClientRect(); mouse.x=((e.clientX-r.left)/r.width)*2-1; mouse.y=-((e.clientY-r.top)/r.height)*2+1;}
+function showTooltip(x,y,txt){tt.style.left=(x+12)+'px'; tt.style.top=(y-8)+'px'; tt.textContent=txt; tt.style.display='block';}
+function hideTooltip(){tt.style.display='none';}
+function doHover(e){
+  gm(e); raycaster.setFromCamera(mouse,camera);
+  const hits=raycaster.intersectObjects(Object.values(regionMsh));
+  if(hits.length>0){
+    const r=hits[0].object.userData;
+    const nm = lang==='en'?(r.nameEn||r.name):r.name;
+    // Find which networks include this region
+    const nets = Object.values(NETWORKS).filter(n=>n.nodes.includes(r.key)).map(n=>lang==='en'?n.nameEn:n.name);
+    const netStr = nets.length ? ' | '+nets.join(', ') : '';
+    showTooltip(e.clientX,e.clientY,`${nm} · ${r.fn}${netStr}`);
+    canvas.style.cursor='pointer';
+  }
+  else{hideTooltip(); canvas.style.cursor='grab';}
+}
+function doClick(e){
+  gm(e); raycaster.setFromCamera(mouse,camera);
+  const hits=raycaster.intersectObjects(Object.values(regionMsh));
+  if(hits.length>0){selectRegion(hits[0].object.userData.key); switchTab('reg');}
+}
+
+// ══════════════════════════════════════════════════════════════════
+// NEURON CANVAS (zoom > 2.5)
+// ══════════════════════════════════════════════════════════════════
+const noCanvas=document.getElementById('neuron-overlay'), noCtx=noCanvas.getContext('2d');
+const NEURONS=[];
+for(let i=0;i<18;i++) NEURONS.push({x:.1+Math.random()*.8,y:.1+Math.random()*.8,ax:Math.random()*Math.PI*2,phase:Math.random()*Math.PI*2,spd:.002+Math.random()*.003});
+function drawNeurons(t){
+  const w=noCanvas.width, h=noCanvas.height;
+  noCtx.clearRect(0,0,w,h);
+  const vis=Math.max(0,Math.min(1,(zoom-2.5)/1.0));
+  if(vis<0.01) return;
+  noCtx.globalAlpha=vis*.65;
+  noCtx.fillStyle='rgba(5,8,18,0.5)'; noCtx.fillRect(0,0,w,h);
+  NEURONS.forEach((n,i)=>{
+    const cx=n.x*w, cy=n.y*h, r=12;
+    const sig=(Math.sin(t*.003+n.phase)>.6)?1:0;
+    const g=noCtx.createRadialGradient(cx,cy,0,cx,cy,r);
+    g.addColorStop(0,sig?'rgba(255,200,100,0.9)':'rgba(80,160,255,0.7)');
+    g.addColorStop(1,'rgba(20,40,80,0)');
+    noCtx.beginPath(); noCtx.arc(cx,cy,r,0,Math.PI*2); noCtx.fillStyle=g; noCtx.fill();
+    noCtx.strokeStyle=sig?'rgba(255,200,80,0.4)':'rgba(50,140,255,0.3)'; noCtx.lineWidth=1;
+    for(let d=0;d<5;d++){const a=n.ax+d*(Math.PI*2/5),len=r+20+Math.random()*30; noCtx.beginPath(); noCtx.moveTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r); noCtx.lineTo(cx+Math.cos(a)*len*(1+Math.sin(t*.005+d)*.2),cy+Math.sin(a)*len*(1+Math.cos(t*.005+d)*.2)); noCtx.stroke();}
+    if(sig){const ax2=n.ax+Math.PI,alen=80,prog=(t*.008+n.phase)%1; noCtx.strokeStyle='rgba(255,230,100,0.8)'; noCtx.lineWidth=2; noCtx.beginPath(); noCtx.moveTo(cx+Math.cos(ax2)*r,cy+Math.sin(ax2)*r); noCtx.lineTo(cx+Math.cos(ax2)*alen,cy+Math.sin(ax2)*alen); noCtx.stroke();}
+    NEURONS.forEach((n2,j)=>{if(j<=i)return; const dx=(n2.x-n.x)*w,dy=(n2.y-n.y)*h,dist=Math.sqrt(dx*dx+dy*dy); if(dist<220){noCtx.strokeStyle=`rgba(50,140,255,${(.15*(1-dist/220)).toFixed(2)})`; noCtx.lineWidth=1; noCtx.beginPath(); noCtx.moveTo(cx,cy); noCtx.lineTo(n2.x*w,n2.y*h); noCtx.stroke();}});
+  });
+  noCtx.globalAlpha=1;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// EEG
+// ══════════════════════════════════════════════════════════════════
+const eegEl=document.getElementById('eeg'), eegCtx=eegEl.getContext('2d');
+let eegOff=0;
+function drawEEG(){
+  const w=eegEl.width||240, h=eegEl.height||44, st=STATES[curState];
+  eegCtx.clearRect(0,0,w,h);
+  eegCtx.strokeStyle='rgba(50,180,255,.06)'; eegCtx.lineWidth=1;
+  for(let yy=0;yy<=h;yy+=h/2){eegCtx.beginPath(); eegCtx.moveTo(0,yy); eegCtx.lineTo(w,yy); eegCtx.stroke();}
+  eegCtx.strokeStyle=st.color; eegCtx.lineWidth=1.4; eegCtx.shadowColor=st.color; eegCtx.shadowBlur=4;
+  eegCtx.beginPath();
+  for(let x=0;x<w;x++){
+    const tt2=(x+eegOff)/w*Math.PI*20;
+    const y2=h/2+Math.sin(tt2*st.eegHz*.5)*9*st.eegAmp+Math.sin(tt2*st.eegHz*1.2)*4*st.eegAmp+Math.sin(tt2*st.eegHz*2.3)*2*st.eegAmp+(vn(x/22,eegOff/45,0)*2-1)*2*st.eegAmp;
+    x===0?eegCtx.moveTo(x,y2):eegCtx.lineTo(x,y2);
+  }
+  eegCtx.stroke(); eegCtx.shadowBlur=0; eegOff+=2.5;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SIMULATION
+// ══════════════════════════════════════════════════════════════════
+let health=88, actLevel=74, scanPct=0;
+function updateMetrics(){
+  const st=STATES[curState];
+  health=Math.max(62,Math.min(100,health+(Math.random()-.515)*.9));
+  actLevel=Math.max(st.actBase*60,Math.min(st.actBase*110,actLevel+(Math.random()-.5)*2.5));
+  document.getElementById('hv-syn').textContent=Math.floor(90+actLevel*12)+'T';
+  document.getElementById('hv-act').textContent=Math.round(actLevel)+'%';
+  REGIONS.forEach(r=>{regionAct[r.key]=Math.max(.08,Math.min(.96,(STATES[curState].actBase*100+(Math.random()*50-25))/100));});
+  scanPct=(scanPct+.7)%100;
+  document.getElementById('spbar').style.width=scanPct+'%';
+  document.getElementById('s-pct').textContent=Math.floor(scanPct)+'%';
+  document.getElementById('s-clk').textContent=new Date().toTimeString().slice(0,8);
+}
+setInterval(updateMetrics,1200); updateMetrics();
+
+// ══════════════════════════════════════════════════════════════════
+// ANIMATE
+// ══════════════════════════════════════════════════════════════════
+let fpsT=performance.now(), fpsN=0;
+function animate(t){
+  requestAnimationFrame(animate); fpsN++;
+  const now=performance.now();
+  if(now-fpsT>600){document.getElementById('fps').textContent=Math.round(fpsN*1000/(now-fpsT)); fpsT=now; fpsN=0;}
+  if(autoRot) rotY+=0.0035;
+  brainGrp.rotation.y=rotY; brainGrp.rotation.x=rotX;
+
+  // Particles
+  if(pMesh.visible){
+    const pa=pGeo.attributes.position.array;
+    pData.forEach((pd,i)=>{pd.t+=pd.spd; if(pd.t>1)pd.t=0; if(pd.ci<tractCurves.length){const pt=tractCurves[pd.ci].getPoint(pd.t); pa[i*3]=pt.x; pa[i*3+1]=pt.y; pa[i*3+2]=pt.z;}});
+    pGeo.attributes.position.needsUpdate=true;
+  }
+
+  // Region glow
+  const st=STATES[curState], phase=Math.sin(now*.0009);
+  REGIONS.forEach(r=>{
+    const m=regionMsh[r.key]; if(!m) return;
+    const act=regionAct[r.key]||.4; let op=0;
+    if(viewMode==='functional') op=act*st.actBase*.55+phase*.05*act;
+    else if(viewMode==='connectivity') op=.06+act*.05;
+    else if(r.key===selKey) op=.28+Math.sin(now*.003)*.1;
+    else if(activeNet&&NETWORKS[activeNet]?.nodes.includes(r.key)) op=.35+Math.sin(now*.002+r.pos[0])*.08;
+    m.material.opacity=op;
+  });
+
+  const em = lightMode ? 0 : STATES[curState].actBase*.04;
+  matL.emissive.setRGB(em*.8,em*.3,em*.2);
+  matR.emissive.setRGB(em*.8,em*.3,em*.2);
+  matL.emissiveIntensity=matR.emissiveIntensity=1;
+
+  // fMRI overlay
+  REGIONS.forEach(r => {
+    const m = fmriMsh[r.key]; if(!m) return;
+    if(fmriMode){
+      const v = regionAct[r.key]||0;
+      if(v>0.28){m.material.color.copy(fmriColor(v)); m.material.opacity=(v-0.28)/0.72*0.55;}
+      else m.material.opacity=0;
+    } else {
+      m.material.opacity = Math.max(0, m.material.opacity - 0.04);
+    }
+  });
+
+  // Sync arcs
+  Object.entries(syncArcData).forEach(([key,{arcs}]) => {
+    const isActive = activeNet===key;
+    arcs.forEach(arc => {
+      if(isActive){
+        const tgt = 0.32 + Math.sin(now*0.0012 + arc.t*5)*0.18;
+        arc.mat.opacity += (tgt - arc.mat.opacity)*0.06;
+        arc.t = (arc.t + 0.006) % 1;
+        const pt = arc.curve.getPoint(arc.t);
+        const pa = arc.sGeo.attributes.position.array;
+        pa[0]=pt.x; pa[1]=pt.y; pa[2]=pt.z;
+        arc.sGeo.attributes.position.needsUpdate=true;
+        arc.sMat.opacity = 0.6 + Math.sin(now*0.008 + arc.t*10)*0.4;
+      } else {
+        arc.mat.opacity = Math.max(0, arc.mat.opacity - 0.025);
+        arc.sMat.opacity = Math.max(0, arc.sMat.opacity - 0.04);
+      }
+    });
+  });
+
+  // ── Signal propagation ──
+  if(propagationActive){
+    const elapsed = performance.now() - propStartTime;
+    let anyLive = false;
+    propWaves.forEach(pw => {
+      const tRel = elapsed - pw.delay;
+      if(tRel < 0) return;
+      const cycle = tRel / 550; // 550ms pulse width
+      const op = Math.max(0, Math.sin(cycle * Math.PI) * 0.72);
+      if(op > 0.01) anyLive = true;
+      const m = regionMsh[pw.key]; if(!m) return;
+      m.material.opacity = op;
+      m.material.color.setHex(pw.hex);
+    });
+    if(!anyLive && elapsed > propWaves.reduce((mx,pw)=>Math.max(mx,pw.delay),0)+600){
+      propagationActive = false;
+    }
+  }
+
+  // ── Digitization scanner beam ──
+  scanY += scanDir * 0.012;
+  if(scanY > 1.8){scanDir=-1; totalScanCycles++;}
+  if(scanY < -2.2){scanDir=1;}
+  scanPlane.position.y = scanY;
+  scanProgress = Math.min(99.9, scanProgress + 0.004);
+  scanMat.opacity = 0.04 + Math.sin(now*0.002)*0.025;
+  // Update digitization panel
+  const linkCount = Math.min(231, Math.floor(totalScanCycles*18 + scanProgress*0.8));
+  const synPct = Math.min(0.8, (totalScanCycles*0.12 + scanProgress*0.003));
+  const boldPct = Math.min(98, Math.floor(scanProgress));
+  document.getElementById('d-links').textContent = linkCount+'/231';
+  document.getElementById('d-links-bar').style.width = (linkCount/231*100).toFixed(0)+'%';
+  document.getElementById('d-syn').textContent = synPct.toFixed(2)+'T';
+  document.getElementById('d-syn-bar').style.width = (synPct/0.8*100).toFixed(0)+'%';
+  document.getElementById('d-bold').textContent = boldPct+'%';
+  document.getElementById('d-bold-bar').style.width = boldPct+'%';
+  document.getElementById('d-scan').textContent = scanProgress.toFixed(1)+'%';
+  document.getElementById('d-scan-bar').style.width = scanProgress.toFixed(1)+'%';
+
+  // ── EEG frequency bands ──
+  const st = STATES[curState];
+  const bandPow = {
+    delta: st.eegHz < 4 ? st.eegAmp * 0.9 : 0.08 + Math.sin(now*0.0007)*0.04,
+    theta: st.eegHz >= 4 && st.eegHz < 8 ? st.eegAmp*0.85 : 0.12+Math.sin(now*0.0009)*0.05,
+    alpha: st.eegHz >= 8 && st.eegHz < 13 ? st.eegAmp*0.90 : 0.18+Math.sin(now*0.0011)*0.06,
+    beta:  st.eegHz >= 13 && st.eegHz < 30 ? st.eegAmp*0.75 : 0.14+Math.sin(now*0.0015)*0.05,
+    gamma: st.eegHz >= 30 ? st.eegAmp*0.70 : 0.06+Math.sin(now*0.0022)*0.03,
+  };
+  const maxPow = Math.max(...Object.values(bandPow));
+  ['delta','theta','alpha','beta','gamma'].forEach(b=>{
+    const el = document.getElementById('bb-'+b); if(!el) return;
+    el.style.height = Math.max(2, Math.round(bandPow[b]/maxPow*28))+'px';
+  });
+
+  drawEEG(); drawNeurons(t);
+  renderer.render(scene,camera); updateLabels();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════
+setBrainState('awake');
+buildLeftPanel();
+showEncArticle('overview');
+animate(0);
+</script>
+</body>
+</html>

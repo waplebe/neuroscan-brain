@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bio-Neural Monitor v6 — Линии связи</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --bg: #050608;
+            --panel: linear-gradient(160deg, #0f1114, #080a0c);
+            --glow: #00ff88;
+            --glow-dim: rgba(0,255,136,0.1);
+            --teal: #00d4aa;
+            --cyan: #00c8ff;
+            --yellow: #ffd54f;
+            --red: #ff6b6b;
+            --purple: #a78bfa;
+            --text: #e2e6ea;
+            --text-dim: #4a5668;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(ellipse 120% 70% at 50% 15%, rgba(0,255,136,0.02), transparent 45%),
+                radial-gradient(ellipse 60% 30% at 85% 90%, rgba(167,139,250,0.02), transparent);
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: 195px 1fr 210px;
+            grid-template-rows: auto 1fr 125px;
+            gap: 10px;
+            padding: 12px;
+            height: 100vh;
+        }
+        .panel {
+            background: var(--panel);
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 2px 2px 8px #020304, -1px -1px 3px rgba(25,30,40,0.12);
+            border: 1px solid rgba(255,255,255,0.02);
+            transition: border-color 0.2s;
+        }
+        .panel:hover { border-color: rgba(0,255,136,0.06); }
+        .panel-title { font-size: 7px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
+        .stat { display: flex; align-items: center; gap: 6px; }
+        .stat-value { font-size: 18px; font-weight: 600; color: var(--glow); text-shadow: 0 0 12px var(--glow-dim); }
+        .stat-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--glow); box-shadow: 0 0 6px var(--glow); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        @keyframes flow { 0%,100%{opacity:0.75} 50%{opacity:1} }
+        .btn-row { display: flex; flex-direction: column; gap: 4px; }
+        .btn {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: rgba(0,255,136,0.05); border: 1px solid rgba(0,255,136,0.2);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .btn:hover { box-shadow: 0 0 14px rgba(0,255,136,0.4); transform: scale(1.04); }
+        .btn.active { background: rgba(0,255,136,0.15); border-color: var(--glow); }
+        .btn svg { width: 12px; height: 12px; stroke: var(--glow); }
+        .health-ring { display: flex; align-items: center; gap: 6px; }
+        .health-value { font-size: 20px; font-weight: 600; color: var(--glow); }
+        .chart-bar { display: flex; align-items: flex-end; gap: 2px; height: 42px; }
+        .chart-bar .bar { flex:1; min-width: 2px; background: linear-gradient(to top, rgba(0,255,136,0.12), var(--glow)); border-radius: 1px; transition: height 0.35s; }
+        .log { max-height: 75px; overflow-y: auto; font-size: 8px; }
+        .log-line { padding: 1px 0; color: var(--text-dim); border-bottom: 1px solid rgba(255,255,255,0.015); }
+        .log-line .ts { color: var(--cyan); }
+        .log-line .ok { color: var(--glow); }
+        .log-line .warn { color: var(--yellow); }
+        .log-line .err { color: var(--red); }
+        #canvas-container {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            background: radial-gradient(circle at center, rgba(0,255,136,0.01) 0%, transparent 65%);
+            cursor: grab;
+        }
+        #canvas-container:active { cursor: grabbing; }
+        #canvas-container canvas { display: block; width: 100%; height: 100%; }
+        .tree-overlay {
+            position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+            text-align: center; pointer-events: none; z-index: 2;
+        }
+        .tree-title { font-size: 9px; letter-spacing: 3px; color: var(--glow); opacity: 0.9; }
+        .tree-sub { font-size: 8px; color: var(--yellow); opacity: 0.6; margin-top: 1px; }
+        .tree-ctrl {
+            position: absolute; top: 8px; right: 12px; z-index: 3;
+            display: flex; gap: 6px; align-items: center;
+        }
+        .tree-ctrl .btn-mini {
+            width: 24px; height: 24px; border-radius: 4px;
+            background: rgba(0,0,0,0.4); border: 1px solid rgba(0,255,136,0.2);
+            color: var(--glow); font-size: 10px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .tree-ctrl .btn-mini:hover { background: rgba(0,255,136,0.15); }
+        .fps-badge { font-size: 8px; color: var(--text-dim); padding: 2px 6px; background: rgba(0,0,0,0.4); border-radius: 4px; }
+        .hint { position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); font-size: 6px; color: var(--text-dim); opacity: 0.45; }
+        .bottom-row { display: grid; grid-template-columns: 1fr 1fr 1.2fr 1fr; gap: 10px; }
+        .line-chart-wrap { height: 50px; }
+        .line-chart-wrap svg { width: 100%; height: 100%; }
+        .grid-heatmap { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; height: 50px; }
+        .grid-heatmap .cell { background: rgba(0,255,136,0.04); border-radius: 1px; transition: all 0.2s; }
+        .grid-heatmap .cell.active { background: rgba(0,255,136,0.28); }
+        .right-stat { font-size: 16px; font-weight: 600; color: var(--glow); }
+        .sphere-wrap { height: 85px; display: flex; align-items: center; justify-content: center; }
+        .sphere-wrap canvas { border-radius: 50%; }
+        .env-line { font-size: 8px; color: var(--text-dim); padding: 1px 0; }
+        .env-line span { color: var(--cyan); }
+        .alerts-panel { max-height: 50px; overflow-y: auto; }
+        .alert { font-size: 7px; padding: 3px 5px; margin-bottom: 2px; border-radius: 3px; border-left: 2px solid var(--glow); background: rgba(0,255,136,0.04); }
+        .alert.warn { border-color: var(--yellow); background: rgba(255,213,79,0.04); }
+        .alert.err { border-color: var(--red); background: rgba(255,107,107,0.04); }
+        .tooltip {
+            position: fixed; padding: 5px 8px; background: rgba(6,8,10,0.96); border: 1px solid rgba(0,255,136,0.25);
+            border-radius: 4px; font-size: 9px; color: var(--text); z-index: 1000; pointer-events: none;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.6); opacity: 0; transition: opacity 0.12s;
+        }
+        .tooltip.visible { opacity: 1; }
+        .tooltip .click-hint { font-size: 7px; color: var(--text-dim); margin-top: 2px; }
+        .node-panel {
+            position: fixed; right: 0; top: 0; width: 260px; height: 100%;
+            background: linear-gradient(90deg, rgba(8,10,12,0.97), rgba(12,15,18,0.98));
+            border-left: 1px solid rgba(0,255,136,0.15);
+            box-shadow: -10px 0 40px rgba(0,0,0,0.5);
+            z-index: 500; transform: translateX(100%); transition: transform 0.25s ease;
+            padding: 16px; overflow-y: auto;
+        }
+        .node-panel.open { transform: translateX(0); }
+        .node-panel h3 { font-size: 12px; color: var(--glow); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(0,255,136,0.2); }
+        .node-panel .field { font-size: 9px; margin-bottom: 6px; display: flex; justify-content: space-between; }
+        .node-panel .field .key { color: var(--text-dim); }
+        .node-panel .field .val { color: var(--glow); }
+        .node-panel .close-btn {
+            position: absolute; top: 12px; right: 12px; width: 24px; height: 24px;
+            border-radius: 4px; background: rgba(255,255,255,0.05); border: none;
+            color: var(--text-dim); cursor: pointer; font-size: 14px; line-height: 1;
+        }
+        .node-panel .close-btn:hover { background: rgba(255,107,107,0.2); color: var(--red); }
+        .fullscreen #canvas-container { position: fixed; inset: 0; z-index: 400; border-radius: 0; }
+        .fullscreen .tree-ctrl, .fullscreen .tree-overlay, .fullscreen .hint { z-index: 410; }
+    </style>
+</head>
+<body>
+    <div class="tooltip" id="tooltip"></div>
+    <div class="node-panel" id="nodePanel">
+        <button class="close-btn" id="closeNodePanel">×</button>
+        <h3 id="nodePanelTitle">Узел</h3>
+        <div id="nodePanelContent"></div>
+    </div>
+    <div class="dashboard" id="dashboard">
+        <div class="left-col" style="display:flex;flex-direction:column;gap:8px">
+            <div class="panel">
+                <div class="panel-title">Активные синапсы</div>
+                <div class="stat">
+                    <div class="stat-dot"></div>
+                    <span class="stat-value" id="synapses">1247</span>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Управление</div>
+                <div class="btn-row">
+                    <div class="btn" id="btnSync" title="Синхронизация"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-9-9"/><path d="M21 3v6h-6"/></svg></div>
+                    <div class="btn" id="btnPause" title="Пауза"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg></div>
+                    <div class="btn" id="btnExport" title="Экспорт"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Энергопоток</div>
+                <div style="height:30px;background:linear-gradient(90deg,rgba(0,255,136,0.06),rgba(0,255,136,0.3),rgba(0,200,255,0.12));border-radius:4px;animation:flow 2.5s ease-in-out infinite"></div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Здоровье</div>
+                <div class="health-ring">
+                    <svg width="36" height="36" viewBox="0 0 36 36">
+                        <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(0,255,136,0.1)" stroke-width="2"/>
+                        <circle id="healthArc" cx="18" cy="18" r="14" fill="none" stroke="var(--glow)" stroke-width="2" stroke-dasharray="0 88" stroke-linecap="round" transform="rotate(-90 18 18)"/>
+                    </svg>
+                    <span class="health-value" id="healthVal">87</span><span style="font-size:8px;color:var(--text-dim)">%</span>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Активность (ч)</div>
+                <div class="chart-bar" id="activityChart"></div>
+            </div>
+            <div class="panel" style="flex:1;min-height:0">
+                <div class="panel-title">Системный лог</div>
+                <div class="log" id="sysLog"></div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Оповещения</div>
+                <div class="alerts-panel" id="alerts"></div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Узлы</div>
+                <svg viewBox="0 0 160 55" style="width:100%;height:48px;opacity:0.85">
+                    <ellipse cx="80" cy="27" rx="75" ry="22" fill="none" stroke="rgba(0,255,136,0.06)"/>
+                    <ellipse cx="35" cy="25" rx="20" ry="12" fill="var(--glow-dim)" stroke="rgba(0,255,136,0.2)"/>
+                    <ellipse cx="125" cy="26" rx="22" ry="14" fill="var(--glow-dim)" stroke="rgba(0,255,136,0.2)"/>
+                    <ellipse cx="80" cy="30" rx="28" ry="15" fill="var(--glow-dim)" stroke="rgba(0,255,136,0.3)"/>
+                </svg>
+            </div>
+        </div>
+
+        <div class="center-area" style="display:flex;flex-direction:column;gap:10px">
+            <div class="panel" style="flex:1;min-height:0;padding:0;position:relative">
+                <div class="tree-overlay">
+                    <div class="tree-title">NEURAL TREE v6.0</div>
+                    <div class="tree-sub">A.D. 4226 · Клик по узлу — детали</div>
+                </div>
+                <div class="tree-ctrl">
+                    <span class="fps-badge">FPS: <span id="fps">60</span></span>
+                    <div class="btn-mini" id="btnFullscreen" title="Полный экран (F)">⛶</div>
+                    <div class="btn-mini" id="btnResetCam" title="Сброс камеры (R)">⌂</div>
+                </div>
+                <div id="canvas-container" style="width:100%;height:100%;min-height:300px"></div>
+                <div class="hint">Drag — поворот · Scroll — зум · Клик — узел · F — fullscreen · R — сброс</div>
+            </div>
+            <div class="bottom-row">
+                <div class="panel">
+                    <div class="panel-title">Пропускная способность</div>
+                    <div class="chart-bar" id="throughputChart"></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">Латентность (мс)</div>
+                    <div class="line-chart-wrap"><svg id="latencySvg" viewBox="0 0 200 50" preserveAspectRatio="none"></svg></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">Активность (7 дней)</div>
+                    <div class="grid-heatmap" id="heatmap"></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">RPS</div>
+                    <div class="chart-bar" id="rpsChart"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-col" style="display:flex;flex-direction:column;gap:8px">
+            <div class="panel">
+                <div class="panel-title">Дата / Время</div>
+                <div style="font-size:12px;color:var(--text-dim)" id="datetime">01.03.4226 04:23</div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Неделя</div>
+                <div class="chart-bar" id="weekChart" style="height:50px"></div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Образец (3D)</div>
+                <div class="sphere-wrap"><canvas id="sphereCanvas" width="65" height="65"></canvas></div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Обработано</div>
+                <div class="right-stat" id="totalProcessed">5 271</div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Окружение</div>
+                <div class="env-line"><span>Статус:</span> <span id="envStatus">НОРМА</span></div>
+                <div class="env-line"><span>Темп:</span> <span id="envTemp">22.3</span>°C</div>
+                <div class="env-line"><span>Влаг:</span> <span id="envHum">44</span>%</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STATE = {
+            health: 87, synapses: 1247, totalProcessed: 5271, paused: false,
+            activity: [72, 45, 38, 55, 68, 85, 78],
+            throughput: [65, 72, 58, 81, 70, 65, 78, 82, 75, 68],
+            rps: [45, 62, 58, 71, 55, 68, 72, 58],
+            latency: [42, 38, 45, 35, 40, 38, 42, 35, 38, 40],
+            weekData: [60, 75, 68, 82, 78, 85, 72],
+            env: { temp: 22.3, hum: 44, status: 'НОРМА' },
+            alerts: [{ msg: 'Синхронизация OK', type: 'ok', time: '04:22:00' }, { msg: 'Пик нагрузки 03:00', type: 'warn', time: '04:20:15' }],
+            log: []
+        };
+
+        function now() {
+            const d = new Date();
+            return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+        }
+        function addLog(msg, type = 'ok') { STATE.log.unshift({ ts: now(), msg, type }); if (STATE.log.length > 14) STATE.log.pop(); }
+        function addAlert(msg, type = 'ok') { STATE.alerts.unshift({ msg, type, time: now() }); if (STATE.alerts.length > 5) STATE.alerts.pop(); renderAlerts(); }
+        function renderAlerts() { document.getElementById('alerts').innerHTML = STATE.alerts.map(a => `<div class="alert ${a.type}">[${a.time}] ${a.msg}</div>`).join(''); }
+
+        function barChart(id, data, max = 100) {
+            document.getElementById(id).innerHTML = data.map(h => `<div class="bar" style="height:${Math.min(100,(h/max)*100)}%"></div>`).join('');
+        }
+        function updateCharts() {
+            if (STATE.paused) return;
+            STATE.throughput.push(Math.floor(65 + Math.random() * 25));
+            if (STATE.throughput.length > 12) STATE.throughput.shift();
+            STATE.latency.push(Math.floor(32 + Math.random() * 18));
+            if (STATE.latency.length > 12) STATE.latency.shift();
+            STATE.rps[STATE.rps.length - 1] = Math.floor(50 + Math.random() * 35);
+            barChart('throughputChart', STATE.throughput, 100);
+            barChart('rpsChart', STATE.rps, 100);
+            latencyLine();
+            document.getElementById('synapses').textContent = Math.max(1200, STATE.synapses + Math.floor((Math.random() - 0.5) * 10));
+            if (!STATE.paused && Math.random() < 0.35) STATE.totalProcessed++;
+            document.getElementById('totalProcessed').textContent = STATE.totalProcessed.toLocaleString('ru-RU');
+            document.getElementById('envTemp').textContent = (STATE.env.temp + (Math.random() - 0.5) * 0.25).toFixed(1);
+            document.getElementById('envHum').textContent = Math.floor(STATE.env.hum + (Math.random() - 0.5) * 2);
+        }
+        function latencyLine() {
+            const L = STATE.latency;
+            const pts = L.map((v, i) => `${(i/(L.length-1))*200},${50 - (v/55)*45}`).join(' ');
+            document.getElementById('latencySvg').innerHTML = `<polyline points="${pts}" fill="none" stroke="var(--glow)" stroke-width="1.5" opacity="0.9"/><circle cx="200" cy="${50-(L[L.length-1]/55)*45}" r="2" fill="var(--glow)"/>`;
+        }
+        function heatmap() {
+            const grid = document.getElementById('heatmap');
+            const days = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+            for (let r = 0; r < 5; r++) for (let c = 0; c < 7; c++)
+                grid.innerHTML += `<div class="cell${Math.random() > (0.38 + r * 0.03) ? ' active' : ''}" title="${days[c]}"></div>`;
+        }
+
+        barChart('activityChart', STATE.activity);
+        barChart('throughputChart', STATE.throughput, 100);
+        barChart('rpsChart', STATE.rps, 100);
+        barChart('weekChart', STATE.weekData);
+        heatmap();
+        latencyLine();
+        renderAlerts();
+
+        ['Инициализация', 'Ядро OK', 'Узел 0x7F', 'Образец #5271', 'Цепочка OK', 'Нейроны активны'].forEach(m => STATE.log.push({ ts: now(), msg: m, type: 'ok' }));
+
+        function renderLog() {
+            document.getElementById('sysLog').innerHTML = STATE.log.map(e => `<div class="log-line"><span class="ts">[${e.ts}]</span> <span class="${e.type}">${e.msg}</span></div>`).join('');
+        }
+        renderLog();
+
+        const circ = 2 * Math.PI * 14;
+        document.getElementById('healthVal').textContent = STATE.health;
+        document.getElementById('healthArc').style.strokeDasharray = `${(STATE.health/100)*circ} ${circ}`;
+
+        setInterval(() => {
+            document.getElementById('datetime').textContent = `${String(new Date().getDate()).padStart(2,'0')}.${String(new Date().getMonth()+1).padStart(2,'0')}.${new Date().getFullYear()} ${String(new Date().getHours()).padStart(2,'0')}:${String(new Date().getMinutes()).padStart(2,'0')}`;
+        }, 1000);
+        setInterval(updateCharts, 2200);
+        setInterval(() => { if (!STATE.paused) { addLog('Пульс ' + STATE.synapses, 'ok'); renderLog(); }}, 9000);
+
+        document.getElementById('btnSync').onclick = () => { addLog('Синхронизация...', 'ok'); renderLog(); addAlert('Синхронизация', 'ok'); setTimeout(() => { addLog('Синхр. OK', 'ok'); renderLog(); }, 800); };
+        document.getElementById('btnPause').onclick = () => {
+            STATE.paused = !STATE.paused;
+            document.getElementById('btnPause').classList.toggle('active', STATE.paused);
+            addLog(STATE.paused ? 'Пауза' : 'Продолжение', STATE.paused ? 'warn' : 'ok');
+            renderLog();
+            addAlert(STATE.paused ? 'Пауза' : 'Активен', STATE.paused ? 'warn' : 'ok');
+        };
+        document.getElementById('btnExport').onclick = () => {
+            const blob = new Blob([JSON.stringify({ state: STATE, time: new Date().toISOString() }, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'bio-neural-v4.json'; a.click();
+            addAlert('Экспорт OK', 'ok');
+        };
+
+        const tooltip = document.getElementById('tooltip');
+        function showTooltip(x, y, text) {
+            tooltip.innerHTML = text + '<div class="click-hint">Клик — детали</div>';
+            tooltip.classList.add('visible');
+            tooltip.style.left = (x + 12) + 'px';
+            tooltip.style.top = (y + 12) + 'px';
+        }
+        function hideTooltip() { tooltip.classList.remove('visible'); }
+
+        function openNodePanel(nodeData) {
+            document.getElementById('nodePanelTitle').textContent = nodeData.name;
+            document.getElementById('nodePanelContent').innerHTML = `
+                <div class="field"><span class="key">ID</span><span class="val">${nodeData.id}</span></div>
+                <div class="field"><span class="key">Нагрузка</span><span class="val">${Math.floor(60 + Math.random() * 35)}%</span></div>
+                <div class="field"><span class="key">Соединений</span><span class="val">${nodeData.connections ?? Math.floor(3 + Math.random() * 8)}</span></div>
+                <div class="field"><span class="key">Статус</span><span class="val">Активен</span></div>
+                <div class="field"><span class="key">Latency</span><span class="val">${Math.floor(30 + Math.random() * 25)} ms</span></div>
+                <div class="field"><span class="key">Последний импульс</span><span class="val">${now()}</span></div>
+            `;
+            document.getElementById('nodePanel').classList.add('open');
+        }
+        document.getElementById('closeNodePanel').onclick = () => document.getElementById('nodePanel').classList.remove('open');
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') document.getElementById('nodePanel').classList.remove('open'); });
+
+        let fullscreen = false;
+        document.getElementById('btnFullscreen').onclick = () => {
+            fullscreen = !fullscreen;
+            document.getElementById('dashboard').classList.toggle('fullscreen', fullscreen);
+            if (fullscreen) document.getElementById('canvas-container').style.minHeight = '100vh';
+            else document.getElementById('canvas-container').style.minHeight = '300px';
+        };
+        document.getElementById('btnResetCam').onclick = () => { rotY = 0; rotX = 0.2; zoom = 1; camera.position.set(0, 2, 7); camera.lookAt(0, 0.5, 0); };
+        document.addEventListener('keydown', e => {
+            if (e.key === 'f' || e.key === 'F') document.getElementById('btnFullscreen').click();
+            if (e.key === 'r' || e.key === 'R') document.getElementById('btnResetCam').click();
+        });
+
+        let lastFrame = performance.now();
+        let frameCount = 0;
+        let fpsAcc = 0;
+        let fpsDisplay = 60;
+
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+        camera.position.set(0, 2, 7);
+        camera.lookAt(0, 0.5, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setClearColor(0x000000, 0);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        function resize() {
+            const w = container.clientWidth, h = container.clientHeight;
+            renderer.setSize(w, h);
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        container.appendChild(renderer.domElement);
+
+        const branchMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.85 });
+        const nodeMat = new THREE.MeshBasicMaterial({ color: 0xffd54f, transparent: true, opacity: 0.92 });
+
+        function createBranch(from, to, radius) {
+            const dir = new THREE.Vector3().subVectors(to, from);
+            const len = dir.length();
+            const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius * 1.15, len, 8), branchMat.clone());
+            mesh.position.copy(new THREE.Vector3().addVectors(from, to).multiplyScalar(0.5));
+            mesh.quaternion.copy(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize()));
+            return mesh;
+        }
+
+        function createNode(pos, r, id) {
+            const mesh = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 12), nodeMat.clone());
+            mesh.position.copy(pos);
+            mesh.userData = { id, nodeId: id, isNode: true };
+            return mesh;
+        }
+
+        const treeGroup = new THREE.Group();
+        const nodeMeshes = [];
+        let branchCount = 0;
+
+        function growBranch(start, dir, length, radius, depth, maxDepth) {
+            if (depth >= maxDepth) return;
+            const end = start.clone().add(dir.clone().multiplyScalar(length));
+            treeGroup.add(createBranch(start, end, radius));
+            branchCount++;
+            const nChildren = depth === 0 ? 5 : (depth < 2 ? 2 : 0);
+            if (depth === maxDepth - 1 || depth === 1) {
+                const n = createNode(end.clone(), 0.032 + Math.random() * 0.018, nodeMeshes.length);
+                treeGroup.add(n);
+                nodeMeshes.push(n);
+            }
+            for (let i = 0; i < nChildren; i++) {
+                const angle = (i / nChildren) * Math.PI * 0.7 + Math.PI * 0.15;
+                const newDir = new THREE.Vector3(Math.sin(angle) * Math.cos((Math.random()-0.5)*0.5), Math.cos(angle) * 0.6 + 0.35, Math.cos(angle) * Math.sin((Math.random()-0.5)*0.5)).normalize();
+                growBranch(end.clone(), newDir, length * (0.55 + Math.random() * 0.35), radius * 0.6, depth + 1, maxDepth);
+            }
+        }
+
+        growBranch(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0), 0.9, 0.06, 0, 5);
+        growBranch(new THREE.Vector3(0, 0.25, 0), new THREE.Vector3(0.85, 0.45, 0).normalize(), 0.55, 0.042, 0, 4);
+        growBranch(new THREE.Vector3(0, 0.25, 0), new THREE.Vector3(-0.75, 0.5, 0.25).normalize(), 0.55, 0.042, 0, 4);
+        growBranch(new THREE.Vector3(0, 0.1, 0), new THREE.Vector3(0.35, -0.55, 0.75).normalize(), 0.45, 0.048, 0, 3);
+        growBranch(new THREE.Vector3(0, 0.1, 0), new THREE.Vector3(-0.25, -0.6, -0.5).normalize(), 0.45, 0.048, 0, 3);
+
+        const rootNode = createNode(new THREE.Vector3(0, 0, 0), 0.1, -1);
+        treeGroup.add(rootNode);
+        nodeMeshes.push(rootNode);
+
+        treeGroup.scale.setScalar(1.35);
+        treeGroup.position.y = 0.12;
+        scene.add(treeGroup);
+
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(2.35, 0.016, 6, 64), new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.2 }));
+        ring.rotation.x = Math.PI / 2;
+        scene.add(ring);
+
+        const orbs = [];
+        for (let i = 0; i < 14; i++) {
+            const a = (i / 14) * Math.PI * 2;
+            const orb = createNode(new THREE.Vector3(Math.cos(a) * 2.35, 0.35, Math.sin(a) * 2.35), 0.022, i + 100);
+            orb.userData.angle = a;
+            scene.add(orb);
+            orbs.push(orb);
+        }
+
+        const particleCount = 70;
+        const pos = new Float32Array(particleCount * 3);
+        for (let i = 0; i < particleCount; i++) {
+            const a = (i / particleCount) * Math.PI * 2;
+            pos[i*3] = Math.cos(a) * 2.3; pos[i*3+1] = 0.35; pos[i*3+2] = Math.sin(a) * 2.3;
+        }
+        const particles = new THREE.BufferGeometry();
+        particles.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        scene.add(new THREE.Points(particles, new THREE.PointsMaterial({ color: 0x00ff88, size: 0.035, transparent: true, opacity: 0.5 })));
+
+        const lineMat = new THREE.LineBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.25 });
+        treeGroup.children.filter(c => c.geometry && c.geometry.type === 'SphereGeometry').forEach((node, i) => {
+            if (i > 0 && i < 5) {
+                const rootPos = new THREE.Vector3(0, 0, 0);
+                const lineGeo = new THREE.BufferGeometry().setFromPoints([rootPos, node.position.clone()]);
+                const line = new THREE.Line(lineGeo, lineMat.clone());
+                treeGroup.add(line);
+            }
+        });
+        for (let i = 0; i < 3; i++) {
+            const a = (i / 3) * Math.PI * 2, b = ((i + 1) / 3) * Math.PI * 2;
+            const lineGeo = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(Math.cos(a) * 2.35, 0.35, Math.sin(a) * 2.35),
+                new THREE.Vector3(Math.cos(b) * 2.35, 0.35, Math.sin(b) * 2.35)
+            ]);
+            scene.add(new THREE.Line(lineGeo, lineMat.clone()));
+        }
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const allClickables = [...nodeMeshes, ...orbs];
+        let lastMouseScreenX = 0, lastMouseScreenY = 0;
+
+        container.addEventListener('mousemove', e => {
+            const rect = container.getBoundingClientRect();
+            mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+            lastMouseScreenX = e.clientX;
+            lastMouseScreenY = e.clientY;
+        });
+        container.addEventListener('mouseleave', hideTooltip);
+
+        let mouseDown = false, prevX = 0, prevY = 0;
+        let rotY = 0, rotX = 0.2;
+        let zoom = 1;
+
+        let dragStartX = 0, dragStartY = 0;
+        container.addEventListener('mousedown', e => { mouseDown = true; prevX = dragStartX = e.clientX; prevY = dragStartY = e.clientY; });
+        container.addEventListener('mouseup', e => {
+            const wasClick = Math.abs(e.clientX - dragStartX) < 6 && Math.abs(e.clientY - dragStartY) < 6;
+            mouseDown = false;
+            if (wasClick) {
+                raycaster.setFromCamera(mouse, camera);
+                const hits = raycaster.intersectObjects(allClickables);
+                if (hits.length > 0) {
+                    const obj = hits[0].object;
+                    const id = obj.userData.nodeId ?? obj.userData.id;
+                    const name = id >= 100 ? `Сенсор #${id-99}` : (id === -1 ? 'Корневой узел' : `Синапс #${id+1}`);
+                    openNodePanel({ name, id: id >= 100 ? `SNS-${id}` : (id === -1 ? 'ROOT' : `SYN-${id}`), connections: id >= 100 ? 2 : (id === -1 ? 5 : 4) });
+                }
+            }
+        });
+        container.addEventListener('mousemove', e => {
+            if (mouseDown) {
+                rotY += (e.clientX - prevX) * 0.012;
+                rotX += (e.clientY - prevY) * 0.012;
+                rotX = Math.max(-0.9, Math.min(0.9, rotX));
+                prevX = e.clientX;
+                prevY = e.clientY;
+            }
+        });
+        container.addEventListener('wheel', e => {
+            e.preventDefault();
+            zoom += e.deltaY > 0 ? -0.15 : 0.15;
+            zoom = Math.max(0.5, Math.min(2.2, zoom));
+            camera.position.z = 7 / zoom;
+        }, { passive: false });
+
+        let hoveredNode = null;
+        const points = scene.children.filter(c => c instanceof THREE.Points)[0];
+
+        function animate(t) {
+            requestAnimationFrame(animate);
+
+            const now = performance.now();
+            frameCount++;
+            if (now - fpsAcc >= 500) {
+                fpsDisplay = Math.round(frameCount * 1000 / (now - fpsAcc));
+                fpsAcc = now;
+                frameCount = 0;
+                document.getElementById('fps').textContent = fpsDisplay;
+            }
+
+            treeGroup.rotation.y = rotY;
+            treeGroup.rotation.x = rotX;
+            treeGroup.rotation.y += STATE.paused ? 0 : 0.0012;
+            orbs.forEach(o => {
+                o.position.x = Math.cos(o.userData.angle + t * 0.00035) * 2.35;
+                o.position.z = Math.sin(o.userData.angle + t * 0.00035) * 2.35;
+            });
+            if (points) points.rotation.y = t * 0.00025;
+
+            raycaster.setFromCamera(mouse, camera);
+            const hits = raycaster.intersectObjects(allClickables);
+            if (hits.length > 0 && !mouseDown) {
+                const obj = hits[0].object;
+                const id = obj.userData.nodeId ?? obj.userData.id;
+                const info = id >= 100 ? `Сенсор #${id-99}` : (id === -1 ? 'Корневой узел' : `Синапс #${id+1}`);
+                if (hoveredNode !== obj) {
+                    hoveredNode = obj;
+                    showTooltip(lastMouseScreenX, lastMouseScreenY, info);
+                }
+            } else {
+                hoveredNode = null;
+                hideTooltip();
+            }
+
+            renderer.render(scene, camera);
+        }
+        animate(0);
+
+        const sc = document.getElementById('sphereCanvas');
+        const sctx = sc.getContext('2d');
+        let sphereRot = 0;
+        function drawSphere() {
+            sctx.clearRect(0, 0, 65, 65);
+            sphereRot += 0.01;
+            const cx = 32.5, cy = 32.5, r = 26;
+            const g = sctx.createRadialGradient(cx - 8, cy - 8, 0, cx, cy, r);
+            g.addColorStop(0, 'rgba(0,255,136,0.5)');
+            g.addColorStop(0.5, 'rgba(0,180,140,0.25)');
+            g.addColorStop(1, 'rgba(0,90,110,0.08)');
+            sctx.save();
+            sctx.translate(cx, cy);
+            sctx.rotate(sphereRot);
+            sctx.translate(-cx, -cy);
+            sctx.fillStyle = g;
+            sctx.beginPath();
+            sctx.arc(cx, cy, r, 0, Math.PI * 2);
+            sctx.fill();
+            sctx.strokeStyle = 'rgba(0,255,136,0.3)';
+            sctx.lineWidth = 1;
+            sctx.stroke();
+            sctx.restore();
+            requestAnimationFrame(drawSphere);
+        }
+        drawSphere();
+    </script>
+</body>
+</html>

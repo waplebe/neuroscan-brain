@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuroScan v39 — Оцифровка мозга</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060810;
+  --panel:#0b1221;
+  --panel2:#0e1528;
+  --border:rgba(50,150,255,0.13);
+  --border2:rgba(50,150,255,0.22);
+  --accent:#3ab8ff;
+  --accent2:#00e5b8;
+  --text:#ccd8f0;
+  --dim:rgba(200,216,240,0.4);
+  --red:#ff5060;
+  --orange:#ff8844;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Courier New',Consolas,monospace}
+body{display:flex;flex-direction:column}
+
+/* ─── HEADER ─── */
+.hdr{
+  height:46px;flex-shrink:0;
+  background:var(--panel);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:14px;padding:0 16px;
+}
+.logo{font-size:14px;font-weight:700;letter-spacing:.18em;color:var(--accent)}
+.logo em{font-style:normal;color:var(--dim);font-weight:400;font-size:11px}
+.hdr-sep{width:1px;height:22px;background:var(--border2)}
+.hm{display:flex;flex-direction:column;min-width:56px}
+.hm-l{font-size:8px;letter-spacing:.1em;color:var(--dim);margin-bottom:1px}
+.hm-v{font-size:13px;color:var(--accent);font-weight:700}
+.spacer{flex:1}
+.hbtns{display:flex;gap:6px}
+.hb{
+  padding:5px 11px;font-size:9px;letter-spacing:.1em;cursor:pointer;
+  background:rgba(50,180,255,.07);border:1px solid var(--border);
+  color:var(--dim);transition:.2s;border-radius:2px;user-select:none;
+}
+.hb:hover{background:rgba(50,180,255,.14);color:var(--accent);border-color:var(--border2)}
+.hb.on{background:rgba(50,180,255,.18);color:var(--accent);border-color:var(--border2)}
+
+/* ─── MAIN ─── */
+.main{display:flex;flex:1;min-height:0;overflow:hidden}
+
+/* ─── LEFT SIDEBAR ─── */
+.sl{
+  width:210px;flex-shrink:0;
+  background:var(--panel);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.sl-hd,.sr-hd{
+  padding:7px 12px;font-size:8px;letter-spacing:.12em;color:var(--dim);
+  background:rgba(0,0,0,.3);border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.rlist{flex:1;overflow-y:auto;padding:4px 0}
+.rlist::-webkit-scrollbar{width:3px}
+.rlist::-webkit-scrollbar-thumb{background:rgba(50,180,255,.2)}
+.ri{
+  display:flex;align-items:center;gap:7px;padding:5px 12px;
+  font-size:10px;cursor:pointer;transition:.15s;
+}
+.ri:hover{background:rgba(50,180,255,.07)}
+.ri.sel{background:rgba(50,180,255,.12);color:var(--accent)}
+.rdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.rname{flex:1}
+.rpct{font-size:8px;color:var(--dim)}
+
+/* ─── CANVAS CENTER ─── */
+.cw{
+  flex:1;position:relative;min-width:0;background:#050508;overflow:hidden;
+}
+.cw::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:linear-gradient(rgba(50,180,255,.018) 1px,transparent 1px),
+             linear-gradient(90deg,rgba(50,180,255,.018) 1px,transparent 1px);
+  background-size:38px 38px;
+}
+#c{display:block;width:100%;height:100%;position:relative;z-index:2}
+
+/* ─── LABELS ─── */
+.lc{position:absolute;inset:0;pointer-events:none;z-index:10}
+.lbl{
+  position:absolute;font-size:8.5px;letter-spacing:.08em;white-space:nowrap;
+  color:rgba(200,225,255,.7);background:rgba(5,10,20,.72);
+  padding:2px 7px;border-left:2px solid rgba(50,180,255,.4);
+  transform:translateY(-50%);pointer-events:none;transition:.2s;
+}
+.lbl.sel{color:var(--accent);border-color:var(--accent);background:rgba(5,15,35,.9)}
+
+/* ─── RIGHT SIDEBAR ─── */
+.sr{
+  width:196px;flex-shrink:0;
+  background:var(--panel);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;
+}
+.sr::-webkit-scrollbar{width:3px}
+.sr::-webkit-scrollbar-thumb{background:rgba(50,180,255,.2)}
+.mb{padding:9px 12px;border-bottom:1px solid var(--border)}
+.mb-t{font-size:8px;letter-spacing:.1em;color:var(--dim);margin-bottom:5px}
+.mv{font-size:20px;font-weight:700;color:var(--accent);line-height:1}
+.mu{font-size:9px;color:var(--dim);margin-top:1px}
+.mch{height:26px;display:flex;align-items:flex-end;gap:2px;margin-top:6px}
+.mbar{flex:1;background:rgba(50,180,255,.28);border-radius:1px;min-height:2px;transition:.4s}
+.agrid{padding:9px 12px;border-bottom:1px solid var(--border)}
+.acell{width:9px;height:9px;border-radius:1px;background:rgba(50,180,255,.09);display:inline-block;margin:1px}
+
+/* ─── INFO PANEL ─── */
+.ip{
+  position:absolute;bottom:12px;left:220px;
+  background:rgba(6,10,22,.97);border:1px solid var(--border2);
+  padding:14px;width:230px;z-index:20;display:none;
+}
+.ip.vis{display:block}
+.ip h3{font-size:11px;color:var(--accent);letter-spacing:.1em;margin-bottom:10px}
+.ipr{
+  font-size:9px;color:var(--dim);display:flex;
+  justify-content:space-between;padding:3px 0;
+  border-bottom:1px solid rgba(50,180,255,.06);
+}
+.ipr span{color:var(--text)}
+.iclose{
+  position:absolute;top:8px;right:10px;cursor:pointer;
+  font-size:16px;color:var(--dim);background:none;border:none;
+}
+.iclose:hover{color:var(--text)}
+
+/* ─── STATUS BAR ─── */
+.sbar{
+  height:34px;flex-shrink:0;background:var(--panel);
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:14px;padding:0 14px;
+  font-size:9px;color:var(--dim);
+}
+.dot-live{width:6px;height:6px;border-radius:50%;background:#3dff88;box-shadow:0 0 6px #3dff88}
+.sprog{flex:1;height:2px;background:rgba(50,180,255,.1);border-radius:1px;overflow:hidden}
+.spbar{height:100%;background:linear-gradient(90deg,var(--accent),#88eeff);width:0;transition:.5s}
+
+/* FPS */
+.fps{
+  position:absolute;bottom:6px;right:6px;
+  font-size:8px;color:rgba(200,216,240,.28);z-index:15;pointer-events:none;
+}
+
+/* TOOLTIP */
+.tt{
+  position:fixed;background:rgba(4,9,20,.92);
+  border:1px solid var(--border2);padding:4px 9px;
+  font-size:9px;color:var(--text);pointer-events:none;z-index:200;
+  display:none;white-space:nowrap;
+}
+
+/* Health ring */
+.hring{display:flex;align-items:center;gap:6px;margin-top:6px}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="logo">NEUROSCAN <em>v39</em></div>
+  <div class="hdr-sep"></div>
+  <div class="hm"><div class="hm-l">НЕЙРОНЫ</div><div class="hm-v">86B</div></div>
+  <div class="hm"><div class="hm-l">СИНАПСЫ</div><div class="hm-v" id="hv-syn">—</div></div>
+  <div class="hm"><div class="hm-l">АКТИВНОСТЬ</div><div class="hm-v" id="hv-act">—</div></div>
+  <div class="hm"><div class="hm-l">ЗДОРОВЬЕ</div><div class="hm-v" id="hv-hlth">—</div></div>
+  <div class="spacer"></div>
+  <div class="hbtns">
+    <div class="hb on" id="bAnat">АНАТОМИЯ</div>
+    <div class="hb" id="bFunc">ФУНКЦИИ</div>
+    <div class="hb" id="bConn">ТРАКТЫ</div>
+    <div class="hb on" id="bLbl">МЕТКИ</div>
+    <div class="hb on" id="bRot">↺ ВРАЩЕНИЕ</div>
+    <div class="hb" id="bWire">КАРКАС</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT: regions -->
+  <div class="sl">
+    <div class="sl-hd">АНАТОМИЧЕСКИЕ РЕГИОНЫ (17)</div>
+    <div class="rlist" id="rlist"></div>
+  </div>
+
+  <!-- CENTER: brain canvas -->
+  <div class="cw" id="cw">
+    <canvas id="c"></canvas>
+    <div class="lc" id="lc"></div>
+    <div class="fps">FPS: <span id="fps">60</span></div>
+
+    <!-- Info panel -->
+    <div class="ip" id="ip">
+      <button class="iclose" id="iclose">×</button>
+      <h3 id="ip-name"></h3>
+      <div id="ip-body"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: metrics -->
+  <div class="sr">
+    <div class="sr-hd">НЕЙРОННЫЕ МЕТРИКИ</div>
+    <div class="mb">
+      <div class="mb-t">НЕЙРОННАЯ АКТИВНОСТЬ</div>
+      <div class="mv" id="mv-act">74</div>
+      <div class="mu">% базовой линии</div>
+      <div class="mch" id="mch-act"></div>
+    </div>
+    <div class="mb">
+      <div class="mb-t">ПОТРЕБЛЕНИЕ O₂</div>
+      <div class="mv" id="mv-o2">3.2</div>
+      <div class="mu">мл/100г/мин</div>
+      <div class="mch" id="mch-o2"></div>
+    </div>
+    <div class="mb">
+      <div class="mb-t">ЧАСТОТА ВОЛН (ЭЭГ)</div>
+      <div class="mv" id="mv-hz">12</div>
+      <div class="mu">Гц · Альфа-ритм</div>
+      <div class="mch" id="mch-hz"></div>
+    </div>
+    <div class="mb">
+      <div class="mb-t">ТРАКТОГРАФИЯ (FA)</div>
+      <div class="mv" id="mv-fa">91</div>
+      <div class="mu">% целостность</div>
+      <div class="mch" id="mch-fa"></div>
+    </div>
+    <div class="mb">
+      <div class="mb-t">ВЧД</div>
+      <div class="mv" id="mv-icp">12</div>
+      <div class="mu">мм рт.ст.</div>
+      <div class="mch" id="mch-icp"></div>
+    </div>
+    <div class="agrid" id="agrid-wrap">
+      <div class="mb-t" style="margin-bottom:7px">АКТИВНОСТЬ ПО ЗОНАМ</div>
+      <div id="agrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="sbar">
+  <div class="dot-live"></div>
+  <span>СКАНИРОВАНИЕ АКТИВНО</span>
+  <span style="color:var(--border2)">│</span>
+  <span id="s-region">Кора · 17 регионов</span>
+  <div class="sprog"><div class="spbar" id="spbar"></div></div>
+  <span id="s-pct">0%</span>
+  <span style="color:var(--border2)">│</span>
+  <span id="s-clk">--:--:--</span>
+</div>
+
+<div class="tt" id="tt"></div>
+
+<!-- THREE.JS -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════
+// REGION DEFINITIONS
+// ═══════════════════════════════════════════════════════════
+const REGIONS = [
+  { key:'frontal-l',    name:'Лобная (Л)',        color:'#4fc3f7', hex:0x4fc3f7, pos:[-0.75, 0.65, 1.05], role:'Планирование, зона Брока', fn:'Исполнительные функции' },
+  { key:'frontal-r',    name:'Лобная (П)',        color:'#29b6f6', hex:0x29b6f6, pos:[0.75, 0.65, 1.05],  role:'Планирование, внимание',  fn:'Исполнительные функции' },
+  { key:'parietal-l',   name:'Теменная (Л)',      color:'#81c784', hex:0x81c784, pos:[-0.7, 0.85, -0.1],  role:'Соматосенсорная кора',    fn:'Тактильное восприятие' },
+  { key:'parietal-r',   name:'Теменная (П)',      color:'#66bb6a', hex:0x66bb6a, pos:[0.7, 0.85, -0.1],   role:'Пространственная ориент.',fn:'Тактильное восприятие' },
+  { key:'temporal-l',   name:'Височная (Л)',      color:'#ffb74d', hex:0xffb74d, pos:[-1.1, 0.1, 0.25],   role:'Речь, зона Вернике',      fn:'Слух и память' },
+  { key:'temporal-r',   name:'Височная (П)',      color:'#ffa726', hex:0xffa726, pos:[1.1, 0.1, 0.25],    role:'Музыкальное восприятие',  fn:'Слух и память' },
+  { key:'occipital',    name:'Затылочная',        color:'#ef5350', hex:0xef5350, pos:[0, 0.3, -1.35],     role:'Зрительная кора V1–V5',  fn:'Обработка зрения' },
+  { key:'cingulate',    name:'Поясная кора',      color:'#ce93d8', hex:0xce93d8, pos:[0, 0.95, 0.35],     role:'Эмоции, конфликт',       fn:'Аффективная регуляция' },
+  { key:'cerebellum',   name:'Мозжечок',          color:'#b39ddb', hex:0xb39ddb, pos:[0, -0.9, -1.2],    role:'Тонкая моторика, баланс', fn:'Координация движений' },
+  { key:'brainstem',    name:'Ствол мозга',       color:'#ff7043', hex:0xff7043, pos:[0, -1.45, -0.55],   role:'Дыхание, ЧСС, сон',      fn:'Вегетативная регуляция' },
+  { key:'thalamus',     name:'Таламус',           color:'#26c6da', hex:0x26c6da, pos:[0, 0.15, 0.0],      role:'Сенсорное реле',         fn:'Переключатель сигналов' },
+  { key:'hippocampus-l',name:'Гиппокамп (Л)',    color:'#9ccc65', hex:0x9ccc65, pos:[-0.65, -0.15, -0.35],role:'Долгосрочная память',    fn:'Консолидация памяти' },
+  { key:'hippocampus-r',name:'Гиппокамп (П)',    color:'#7cb342', hex:0x7cb342, pos:[0.65, -0.15, -0.35], role:'Пространственная карта', fn:'Консолидация памяти' },
+  { key:'amygdala-l',   name:'Миндалина (Л)',     color:'#f48fb1', hex:0xf48fb1, pos:[-0.7, -0.15, 0.35], role:'Страх, тревога',         fn:'Эмоциональная память' },
+  { key:'amygdala-r',   name:'Миндалина (П)',     color:'#f06292', hex:0xf06292, pos:[0.7, -0.15, 0.35],  role:'Эмоциональная реакция',  fn:'Эмоциональная память' },
+  { key:'basal-ganglia',name:'Базальные ганглии', color:'#80cbc4', hex:0x80cbc4, pos:[0.25, 0.05, 0.3],   role:'Двигательный контроль',  fn:'Подкорковые ядра' },
+  { key:'prefrontal',   name:'Префронтальная',    color:'#80deea', hex:0x80deea, pos:[0, 0.75, 1.55],     role:'Рабочая память, личность',fn:'Высшие когн. функции' },
+];
+
+// ═══════════════════════════════════════════════════════════
+// THREE.JS SETUP
+// ═══════════════════════════════════════════════════════════
+const canvas = document.getElementById('c');
+const wrap   = document.getElementById('cw');
+const scene  = new THREE.Scene();
+scene.background = new THREE.Color(0x050508);
+
+const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+camera.position.set(0, 0.4, 5.8);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+
+function resize() {
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ── LIGHTS ──────────────────────────────────────────────
+const hemi = new THREE.HemisphereLight(0xfff4f0, 0x331008, 0.45);
+scene.add(hemi);
+
+const sun = new THREE.DirectionalLight(0xfff8f0, 1.15);
+sun.position.set(3, 5, 4);
+scene.add(sun);
+
+const fill = new THREE.DirectionalLight(0xc0d8ff, 0.38);
+fill.position.set(-4, 0.5, -3);
+scene.add(fill);
+
+const rim = new THREE.PointLight(0xff7040, 0.22, 18);
+rim.position.set(0, -4, -3);
+scene.add(rim);
+
+// ═══════════════════════════════════════════════════════════
+// NOISE (VALUE NOISE + FBM)
+// ═══════════════════════════════════════════════════════════
+function fract(x) { return x - Math.floor(x); }
+function h3(x, y, z) { return fract(Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453); }
+function vn(x, y, z) {
+  const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z);
+  const fx = x-ix, fy = y-iy, fz = z-iz;
+  const ux = fx*fx*(3-2*fx), uy = fy*fy*(3-2*fy), uz = fz*fz*(3-2*fz);
+  return (
+    h3(ix,iy,iz)    *(1-ux)*(1-uy)*(1-uz) + h3(ix+1,iy,iz)    *ux*(1-uy)*(1-uz) +
+    h3(ix,iy+1,iz)  *(1-ux)*uy    *(1-uz) + h3(ix+1,iy+1,iz)  *ux*uy    *(1-uz) +
+    h3(ix,iy,iz+1)  *(1-ux)*(1-uy)*uz     + h3(ix+1,iy,iz+1)  *ux*(1-uy)*uz     +
+    h3(ix,iy+1,iz+1)*(1-ux)*uy    *uz     + h3(ix+1,iy+1,iz+1)*ux*uy    *uz
+  );
+}
+function fbm(x, y, z, oct) {
+  let v = 0, a = 0.5, f = 1.9;
+  for (let i = 0; i < oct; i++) {
+    v += a * (vn(x*f, y*f, z*f) * 2 - 1);
+    a *= 0.52; f *= 2.05;
+  }
+  return v;
+}
+
+// ═══════════════════════════════════════════════════════════
+// BRAIN GEOMETRY
+// ═══════════════════════════════════════════════════════════
+
+// Main hemisphere (side = -1 left, +1 right)
+function makeHemi(side) {
+  const geo = new THREE.SphereGeometry(1, 112, 80);
+  const pos = geo.attributes.position;
+  const a = pos.array;
+  const seed = side * 0.31;
+
+  for (let i = 0; i < pos.count; i++) {
+    let x = a[i*3], y = a[i*3+1], z = a[i*3+2];
+
+    // ── Brain proportions: wider lat, compressed vertical, elongated AP ──
+    x *= 0.93;
+    y *= 0.71;
+    z *= 1.08;
+
+    // Slight posterior tilt (occipital hangs back-down)
+    y += z * (-0.09);
+
+    const len = Math.sqrt(x*x + y*y + z*z) || 1e-6;
+    const nx = x/len, ny = y/len, nz = z/len;
+
+    // ── Gyri / sulci (multi-octave fbm on surface normal) ──
+    const g = fbm(nx*3.2 + seed, ny*3.4, nz*3.0, 4);
+    const gFine = fbm(nx*7 + seed*1.7, ny*7.5, nz*6.8, 3) * 0.28;
+    const disp = (g + gFine) * 0.115;
+    x += nx * disp;
+    y += ny * disp;
+    z += nz * disp;
+
+    // ── Longitudinal fissure (medial groove along x ≈ 0) ──
+    const medial = Math.exp(-x*x * 28) * 0.18;
+    x *= (1.0 - medial * 0.8);
+    y -= medial * 0.06;
+
+    // ── Sylvian fissure (lateral sulcus) ──
+    // Located at: lateral (|x|>0.4), low y, mid z
+    const sylvY = (y + 0.18) / 0.28;
+    const sylvZ = (z - 0.12) / 0.5;
+    const sylvX = (Math.abs(x) - 0.38) / 0.45;
+    const sylvian = Math.max(0, 1 - sylvY*sylvY) *
+                    Math.max(0, 1 - sylvZ*sylvZ) *
+                    Math.max(0, Math.min(1, sylvX));
+    if (sylvian > 0) {
+      const d = sylvian * 0.16;
+      y -= d;
+      x -= Math.sign(x) * d * 0.4;
+    }
+
+    // ── Central sulcus (Rolando) – superior strip at z ≈ +0.18 ──
+    const csDist = (z - 0.18) / 0.09;
+    const csHt   = Math.max(0, (y - 0.22) / 0.65);
+    const cs     = Math.exp(-csDist * csDist) * csHt;
+    z -= cs * 0.09;
+
+    // ── Offset to side ──
+    x += side * 0.86;
+
+    a[i*3] = x; a[i*3+1] = y; a[i*3+2] = z;
+  }
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+  return geo;
+}
+
+// Cerebellum – finer, denser folia
+function makeCerebellum() {
+  const geo = new THREE.SphereGeometry(0.52, 72, 52);
+  const pos = geo.attributes.position;
+  const a = pos.array;
+  for (let i = 0; i < pos.count; i++) {
+    let x = a[i*3], y = a[i*3+1], z = a[i*3+2];
+    x *= 1.35; y *= 0.68; z *= 1.0;
+    const len = Math.sqrt(x*x+y*y+z*z)||1e-6;
+    const nx=x/len, ny=y/len, nz=z/len;
+    // Folia: regular ridges perpendicular to lateral axis
+    const folia = fbm(nx*9, ny*5, nz*9, 3) * 0.065 + fbm(nx*18, ny*12, nz*18, 2) * 0.025;
+    a[i*3]   = x + nx*folia;
+    a[i*3+1] = y + ny*folia;
+    a[i*3+2] = z + nz*folia;
+  }
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+  return geo;
+}
+
+// ── MATERIALS ──────────────────────────────────────────────
+const CORTEX_COLOR = 0xd0907a;
+function cortexMat(col, emcol) {
+  return new THREE.MeshPhongMaterial({
+    color: col || CORTEX_COLOR,
+    emissive: emcol || 0x180806,
+    emissiveIntensity: 0.1,
+    shininess: 22,
+    specular: new THREE.Color(0xffe8d8),
+  });
+}
+
+// ── BUILD SCENE ────────────────────────────────────────────
+const brainGrp = new THREE.Group();
+scene.add(brainGrp);
+
+const matL = cortexMat(); 
+const matR = cortexMat();
+const mshL = new THREE.Mesh(makeHemi(-1), matL);
+const mshR = new THREE.Mesh(makeHemi( 1), matR);
+brainGrp.add(mshL, mshR);
+
+const cerMesh = new THREE.Mesh(makeCerebellum(), cortexMat(0xc07a6a));
+cerMesh.position.set(0, -0.85, -1.22);
+cerMesh.rotation.x = 0.18;
+brainGrp.add(cerMesh);
+
+// Brainstem
+const bsGeo = new THREE.CylinderGeometry(0.15, 0.11, 0.88, 14);
+const bsMsh = new THREE.Mesh(bsGeo, cortexMat(0xb87060));
+bsMsh.position.set(0, -1.32, -0.62);
+bsMsh.rotation.x = 0.32;
+brainGrp.add(bsMsh);
+
+// Corpus callosum arch (midline)
+const ccGeo = new THREE.TorusGeometry(0.52, 0.042, 8, 40, Math.PI);
+const ccMsh = new THREE.Mesh(ccGeo, cortexMat(0xbf9888));
+ccMsh.position.set(0, 0.52, 0.12);
+ccMsh.rotation.x = -0.28;
+ccMsh.rotation.z = Math.PI;
+brainGrp.add(ccMsh);
+
+brainGrp.scale.setScalar(0.98);
+brainGrp.position.y = 0.08;
+
+// ── FUNCTIONAL OVERLAY MESHES ─────────────────────────────
+const regionMsh = {};
+REGIONS.forEach(r => {
+  const geo = new THREE.SphereGeometry(0.3, 20, 16);
+  const mat = new THREE.MeshPhongMaterial({
+    color: r.hex, emissive: r.hex, emissiveIntensity: 0.35,
+    transparent: true, opacity: 0, depthWrite: false,
+  });
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(...r.pos);
+  m.userData = { ...r };
+  brainGrp.add(m);
+  regionMsh[r.key] = m;
+});
+
+// ── TRACT LINES ────────────────────────────────────────────
+const TRACTS = [
+  ['frontal-l','parietal-l'],['frontal-r','parietal-r'],
+  ['parietal-l','occipital'],['parietal-r','occipital'],
+  ['temporal-l','hippocampus-l'],['temporal-r','hippocampus-r'],
+  ['thalamus','frontal-l'],['thalamus','frontal-r'],
+  ['thalamus','occipital'],
+  ['brainstem','cerebellum'],
+  ['amygdala-l','hippocampus-l'],['amygdala-r','hippocampus-r'],
+  ['frontal-l','frontal-r'], // corpus
+  ['prefrontal','frontal-l'],['prefrontal','frontal-r'],
+];
+
+const tractGrp = new THREE.Group();
+TRACTS.forEach(([a,b]) => {
+  const ra = REGIONS.find(r=>r.key===a), rb = REGIONS.find(r=>r.key===b);
+  if (!ra||!rb) return;
+  const p0 = new THREE.Vector3(...ra.pos);
+  const p1 = new THREE.Vector3(...rb.pos);
+  const mid = p0.clone().add(p1).multiplyScalar(0.5);
+  mid.y += 0.18;
+  const curve = new THREE.QuadraticBezierCurve3(p0, mid, p1);
+  const pts = curve.getPoints(24);
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat = new THREE.LineBasicMaterial({ color: 0x1a5568, transparent: true, opacity: 0.45 });
+  tractGrp.add(new THREE.Line(geo, mat));
+});
+brainGrp.add(tractGrp);
+tractGrp.visible = false;
+
+// ═══════════════════════════════════════════════════════════
+// HTML LABELS
+// ═══════════════════════════════════════════════════════════
+const labelsCont = document.getElementById('lc');
+const lblEls = {};
+let labelsOn = true;
+
+REGIONS.forEach(r => {
+  const el = document.createElement('div');
+  el.className = 'lbl';
+  el.textContent = r.name;
+  el.dataset.key = r.key;
+  labelsCont.appendChild(el);
+  lblEls[r.key] = el;
+});
+
+function updateLabels() {
+  if (!labelsOn) return;
+  const rect = canvas.getBoundingClientRect();
+  REGIONS.forEach(r => {
+    const p = new THREE.Vector3(...r.pos).applyMatrix4(brainGrp.matrixWorld);
+    const v = p.clone().project(camera);
+    const el = lblEls[r.key];
+    if (!el) return;
+    if (v.z > 1) { el.style.display = 'none'; return; }
+    el.style.display = '';
+    el.style.left = ((v.x + 1) * rect.width  / 2) + 'px';
+    el.style.top  = ((-v.y + 1) * rect.height / 2) + 'px';
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// LEFT SIDEBAR – region list
+// ═══════════════════════════════════════════════════════════
+const rlist = document.getElementById('rlist');
+REGIONS.forEach(r => {
+  const el = document.createElement('div');
+  el.className = 'ri'; el.dataset.key = r.key;
+  el.innerHTML = `<div class="rdot" style="background:${r.color}"></div>
+    <div class="rname">${r.name}</div>
+    <div class="rpct" id="rp-${r.key}">${Math.floor(40+Math.random()*55)}%</div>`;
+  el.addEventListener('click', () => selectRegion(r.key));
+  rlist.appendChild(el);
+});
+
+// ═══════════════════════════════════════════════════════════
+// MINI CHARTS INIT
+// ═══════════════════════════════════════════════════════════
+['act','o2','hz','fa','icp'].forEach(id => {
+  const el = document.getElementById('mch-'+id);
+  for (let i = 0; i < 16; i++) {
+    const b = document.createElement('div'); b.className = 'mbar';
+    b.style.height = (Math.random() * 22 + 4) + 'px';
+    el.appendChild(b);
+  }
+});
+
+// Activity grid
+const agrid = document.getElementById('agrid');
+REGIONS.slice(0, 8).forEach((r, ri) => {
+  const row = document.createElement('div'); row.style.display = 'flex';
+  for (let c = 0; c < 13; c++) {
+    const cell = document.createElement('div');
+    cell.className = 'acell'; cell.id = `ac-${ri}-${c}`;
+    row.appendChild(cell);
+  }
+  agrid.appendChild(row);
+});
+
+// ═══════════════════════════════════════════════════════════
+// STATE & SELECTION
+// ═══════════════════════════════════════════════════════════
+let autoRot = true;
+let viewMode = 'anatomy'; // anatomy | functional | connectivity
+let selKey = null;
+let labScene = true;
+let wireMode = false;
+let scanPct = 0;
+
+let health = 88, activity = 74;
+const hist = { act:[], o2:[], hz:[], fa:[], icp:[] };
+['act','o2','hz','fa','icp'].forEach(k => { for(let i=0;i<16;i++) hist[k].push(Math.random()); });
+
+function selectRegion(key) {
+  if (selKey === key) {
+    selKey = null;
+    document.getElementById('ip').classList.remove('vis');
+    Object.values(regionMsh).forEach(m => m.material.opacity = viewMode === 'functional' ? 0.2 : 0);
+    document.querySelectorAll('.ri').forEach(el => el.classList.remove('sel'));
+    Object.values(lblEls).forEach(el => el.classList.remove('sel'));
+    return;
+  }
+  selKey = key;
+  const r = REGIONS.find(r => r.key === key);
+  if (!r) return;
+
+  // Overlays
+  Object.entries(regionMsh).forEach(([k, m]) => {
+    m.material.opacity = k === key ? 0.38 : (viewMode === 'functional' ? 0.15 : 0);
+  });
+
+  // Sidebar
+  document.querySelectorAll('.ri').forEach(el => el.classList.toggle('sel', el.dataset.key === key));
+  Object.entries(lblEls).forEach(([k, el]) => el.classList.toggle('sel', k === key));
+
+  // Info panel
+  const act = Math.floor(38 + Math.random() * 58);
+  const neurons = (Math.random() * 6 + 0.8).toFixed(1);
+  const conns = Math.floor(Math.random() * 250 + 80);
+  document.getElementById('ip-name').textContent = r.name;
+  document.getElementById('ip-body').innerHTML = `
+    <div class="ipr">Роль <span>${r.role}</span></div>
+    <div class="ipr">Функция <span>${r.fn}</span></div>
+    <div class="ipr">Активность <span>${act}%</span></div>
+    <div class="ipr">Нейронов <span>~${neurons}B</span></div>
+    <div class="ipr">Синаптических связей <span>${conns}M</span></div>
+    <div class="ipr">O₂ потребл. <span>${(Math.random()*2+2).toFixed(1)} мл/мин</span></div>
+    <div class="ipr">Латентность <span>${Math.floor(Math.random()*20+10)} мс</span></div>
+  `;
+  document.getElementById('ip').classList.add('vis');
+
+  // Auto-scroll sidebar
+  const seli = document.querySelector(`.ri[data-key="${key}"]`);
+  if (seli) seli.scrollIntoView({ block: 'nearest' });
+}
+
+function setViewMode(mode) {
+  viewMode = mode;
+  const base = 0xd0907a;
+  if (mode === 'anatomy') {
+    matL.color.setHex(base); matR.color.setHex(base);
+    cerMesh.material.color.setHex(0xc07a6a); bsMsh.material.color.setHex(0xb87060);
+    Object.values(regionMsh).forEach(m => m.material.opacity = m.userData.key === selKey ? 0.38 : 0);
+    tractGrp.visible = false;
+  } else if (mode === 'functional') {
+    matL.color.setHex(0xc07060); matR.color.setHex(0xc07060);
+    cerMesh.material.color.setHex(0xa06858); bsMsh.material.color.setHex(0x984d3c);
+    Object.values(regionMsh).forEach(m => m.material.opacity = m.userData.key === selKey ? 0.45 : 0.18);
+    tractGrp.visible = false;
+  } else if (mode === 'connectivity') {
+    matL.color.setHex(0x1a3348); matR.color.setHex(0x1a3348);
+    cerMesh.material.color.setHex(0x152535); bsMsh.material.color.setHex(0x121f2c);
+    Object.values(regionMsh).forEach(m => m.material.opacity = 0.12);
+    tractGrp.visible = true;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// HEADER BUTTONS
+// ═══════════════════════════════════════════════════════════
+const modeBtns = ['bAnat','bFunc','bConn'];
+document.getElementById('bAnat').addEventListener('click', () => {
+  modeBtns.forEach(id => document.getElementById(id).classList.remove('on'));
+  document.getElementById('bAnat').classList.add('on');
+  setViewMode('anatomy');
+});
+document.getElementById('bFunc').addEventListener('click', () => {
+  modeBtns.forEach(id => document.getElementById(id).classList.remove('on'));
+  document.getElementById('bFunc').classList.add('on');
+  setViewMode('functional');
+});
+document.getElementById('bConn').addEventListener('click', () => {
+  modeBtns.forEach(id => document.getElementById(id).classList.remove('on'));
+  document.getElementById('bConn').classList.add('on');
+  setViewMode('connectivity');
+});
+document.getElementById('bLbl').addEventListener('click', function() {
+  labelsOn = !labelsOn;
+  this.classList.toggle('on', labelsOn);
+  Object.values(lblEls).forEach(el => el.style.display = labelsOn ? '' : 'none');
+});
+document.getElementById('bRot').addEventListener('click', function() {
+  autoRot = !autoRot;
+  this.classList.toggle('on', autoRot);
+});
+document.getElementById('bWire').addEventListener('click', function() {
+  wireMode = !wireMode;
+  this.classList.toggle('on', wireMode);
+  [matL, matR, cerMesh.material, bsMsh.material, ccMsh.material].forEach(m => {
+    m.wireframe = wireMode;
+  });
+});
+document.getElementById('iclose').addEventListener('click', () => { if(selKey) selectRegion(selKey); });
+
+// ═══════════════════════════════════════════════════════════
+// CAMERA CONTROLS
+// ═══════════════════════════════════════════════════════════
+const mouse = new THREE.Vector2();
+let rotY = 0, rotX = 0.1, zoom = 1;
+let mDown = false, prevX = 0, prevY = 0, dStartX = 0, dStartY = 0;
+let lastMX = 0, lastMY = 0;
+
+wrap.addEventListener('mousedown', e => {
+  mDown = true; prevX = dStartX = e.clientX; prevY = dStartY = e.clientY;
+});
+wrap.addEventListener('mouseup', e => {
+  const drag = Math.abs(e.clientX - dStartX) > 5 || Math.abs(e.clientY - dStartY) > 5;
+  mDown = false;
+  if (!drag) doClick(e);
+});
+wrap.addEventListener('mousemove', e => {
+  lastMX = e.clientX; lastMY = e.clientY;
+  if (mDown) {
+    rotY += (e.clientX - prevX) * 0.011;
+    rotX += (e.clientY - prevY) * 0.011;
+    rotX = Math.max(-0.75, Math.min(0.75, rotX));
+    prevX = e.clientX; prevY = e.clientY;
+  }
+  doHover(e);
+});
+wrap.addEventListener('wheel', e => {
+  e.preventDefault();
+  zoom *= e.deltaY > 0 ? 0.92 : 1.08;
+  zoom = Math.max(0.35, Math.min(3.2, zoom));
+  camera.position.z = 5.8 / zoom;
+}, { passive: false });
+wrap.addEventListener('mouseleave', hideTooltip);
+
+// ═══════════════════════════════════════════════════════════
+// RAYCASTING
+// ═══════════════════════════════════════════════════════════
+const raycaster = new THREE.Raycaster();
+const tt = document.getElementById('tt');
+
+function getScreenMouse(e) {
+  const r = canvas.getBoundingClientRect();
+  mouse.x = ((e.clientX - r.left) / r.width)  * 2 - 1;
+  mouse.y = -((e.clientY - r.top)  / r.height) * 2 + 1;
+}
+function showTooltip(x, y, txt) {
+  tt.style.left = (x + 12) + 'px'; tt.style.top = (y - 8) + 'px';
+  tt.textContent = txt; tt.style.display = 'block';
+}
+function hideTooltip() { tt.style.display = 'none'; }
+
+function doHover(e) {
+  getScreenMouse(e);
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(Object.values(regionMsh));
+  if (hits.length > 0 && hits[0].object.userData.key) {
+    const r = hits[0].object.userData;
+    showTooltip(e.clientX, e.clientY, `${r.name}  ·  ${r.fn}`);
+    canvas.style.cursor = 'pointer';
+  } else {
+    hideTooltip();
+    canvas.style.cursor = 'grab';
+  }
+}
+
+function doClick(e) {
+  getScreenMouse(e);
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(Object.values(regionMsh));
+  if (hits.length > 0) {
+    selectRegion(hits[0].object.userData.key);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SIMULATION
+// ═══════════════════════════════════════════════════════════
+function updateMetrics() {
+  health   = Math.max(62, Math.min(100, health   + (Math.random()-.515) * 0.9));
+  activity = Math.max(42, Math.min(96,  activity + (Math.random()-.5)   * 2.2));
+
+  const o2  = 2.3 + activity / 100;
+  const hz  = 8 + activity / 11;
+  const fa  = health * 0.94 + Math.random() * 4;
+  const icp = 10 + (100 - health) * 0.18 + Math.random() * 1.5;
+
+  document.getElementById('mv-act').textContent  = Math.round(activity);
+  document.getElementById('mv-o2').textContent   = o2.toFixed(1);
+  document.getElementById('mv-hz').textContent   = Math.round(hz);
+  document.getElementById('mv-fa').textContent   = Math.round(fa);
+  document.getElementById('mv-icp').textContent  = Math.round(icp);
+
+  document.getElementById('hv-syn').textContent  = Math.floor(100 + activity * 12) + 'T';
+  document.getElementById('hv-act').textContent  = Math.round(activity) + '%';
+  document.getElementById('hv-hlth').textContent = Math.round(health) + '%';
+
+  // Push hists
+  hist.act.push(activity/100);  hist.act.shift();
+  hist.o2.push((o2-2)/2.5);    hist.o2.shift();
+  hist.hz.push(hz/20);          hist.hz.shift();
+  hist.fa.push(fa/100);         hist.fa.shift();
+  hist.icp.push(icp/25);        hist.icp.shift();
+
+  // Update mini-charts
+  ['act','o2','hz','fa','icp'].forEach(id => {
+    const bars = document.getElementById('mch-'+id).children;
+    hist[id].forEach((v, i) => { if(bars[i]) bars[i].style.height = Math.max(2, v*24)+'px'; });
+  });
+
+  // Region activities
+  REGIONS.forEach(r => {
+    const el = document.getElementById('rp-'+r.key);
+    if (el) el.textContent = Math.floor(28+Math.random()*68)+'%';
+  });
+
+  // Activity grid
+  for (let ri = 0; ri < 8; ri++) {
+    for (let c = 0; c < 13; c++) {
+      const cell = document.getElementById(`ac-${ri}-${c}`);
+      if (cell) { const v = Math.random(); cell.style.background = `rgba(50,184,255,${(0.06+v*0.82).toFixed(2)})`; }
+    }
+  }
+
+  // Scan bar
+  scanPct = (scanPct + 0.7) % 100;
+  document.getElementById('spbar').style.width = scanPct + '%';
+  document.getElementById('s-pct').textContent = Math.floor(scanPct) + '%';
+
+  // Clock
+  document.getElementById('s-clk').textContent = new Date().toTimeString().slice(0, 8);
+}
+
+setInterval(updateMetrics, 1000);
+updateMetrics();
+
+// ═══════════════════════════════════════════════════════════
+// ANIMATION LOOP
+// ═══════════════════════════════════════════════════════════
+let fpsT = performance.now(), fpsN = 0;
+
+function animate(t) {
+  requestAnimationFrame(animate);
+
+  fpsN++;
+  const now = performance.now();
+  if (now - fpsT > 600) {
+    document.getElementById('fps').textContent = Math.round(fpsN * 1000 / (now - fpsT));
+    fpsT = now; fpsN = 0;
+  }
+
+  if (autoRot) rotY += 0.0038;
+  brainGrp.rotation.y = rotY;
+  brainGrp.rotation.x = rotX;
+
+  // Pulse selected region
+  if (selKey && regionMsh[selKey]) {
+    const p = 0.32 + Math.sin(now * 0.0028) * 0.1;
+    regionMsh[selKey].material.opacity = viewMode === 'connectivity' ? 0.25 : p;
+  }
+
+  renderer.render(scene, camera);
+  updateLabels();
+}
+
+animate(0);
+setViewMode('anatomy');
+</script>
+</body>
+</html>

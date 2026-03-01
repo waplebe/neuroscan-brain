@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bio-Neural Monitor — Система мониторинга синтетической нейросети</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --bg: #0d0f12;
+            --panel: linear-gradient(145deg, #1a1d24, #12151a);
+            --glow: #00ff88;
+            --glow-dim: rgba(0,255,136,0.15);
+            --teal: #00d4aa;
+            --cyan: #00c8ff;
+            --yellow: #ffd54f;
+            --text: #e4e8ec;
+            --text-dim: #6b7a8c;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow: hidden;
+            background-image: radial-gradient(ellipse 80% 50% at 50% 30%, rgba(0,255,136,0.04), transparent);
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: 200px 1fr 220px;
+            grid-template-rows: auto 1fr 120px;
+            gap: 14px;
+            padding: 16px;
+            height: 100vh;
+        }
+        .panel {
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 4px 4px 12px #060709, -2px -2px 6px rgba(40,45,55,0.2);
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+        .panel-title { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
+        .stat { display: flex; align-items: center; gap: 8px; }
+        .stat-value { font-size: 22px; font-weight: 600; color: var(--glow); text-shadow: 0 0 20px var(--glow-dim); }
+        .stat-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--glow); box-shadow: 0 0 10px var(--glow); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        @keyframes flow { 0%,100%{opacity:0.85} 50%{opacity:1} }
+        .btn-row { display: flex; flex-direction: column; gap: 6px; }
+        .btn {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.3);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s;
+            box-shadow: 0 0 12px rgba(0,255,136,0.2);
+        }
+        .btn:hover { box-shadow: 0 0 20px rgba(0,255,136,0.5); }
+        .btn svg { width: 14px; height: 14px; stroke: var(--glow); }
+        .health-ring { display: flex; align-items: center; gap: 10px; }
+        .health-ring svg { flex-shrink: 0; }
+        .health-value { font-size: 24px; font-weight: 600; color: var(--glow); }
+        .chart-bar { display: flex; align-items: flex-end; gap: 3px; height: 50px; }
+        .chart-bar .bar { flex:1; min-width: 4px; background: linear-gradient(to top, rgba(0,255,136,0.2), var(--glow)); border-radius: 2px; transition: height 0.3s; }
+        .log { max-height: 90px; overflow-y: auto; font-size: 9px; }
+        .log-line { padding: 2px 0; color: var(--text-dim); border-bottom: 1px solid rgba(255,255,255,0.02); }
+        .log-line .ts { color: var(--cyan); }
+        .log-line .ok { color: var(--glow); }
+        .log-line .warn { color: var(--yellow); }
+        #canvas-container {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            background: radial-gradient(circle, rgba(0,255,136,0.02) 0%, transparent 70%);
+        }
+        #canvas-container canvas { display: block; width: 100%; height: 100%; }
+        .tree-overlay {
+            position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+            text-align: center; pointer-events: none; z-index: 2;
+        }
+        .tree-title { font-size: 10px; letter-spacing: 5px; color: var(--glow); opacity: 0.8; }
+        .tree-sub { font-size: 9px; color: var(--yellow); opacity: 0.7; margin-top: 2px; }
+        .hint { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); font-size: 8px; color: var(--text-dim); opacity: 0.6; }
+        .bottom-row { display: grid; grid-template-columns: 1fr 1fr 1.2fr 1fr; gap: 14px; }
+        .line-chart-wrap { height: 60px; position: relative; }
+        .line-chart-wrap svg { width: 100%; height: 100%; }
+        .grid-heatmap { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; height: 60px; }
+        .grid-heatmap .cell { background: rgba(0,255,136,0.06); border-radius: 2px; transition: all 0.2s; }
+        .grid-heatmap .cell.active { background: rgba(0,255,136,0.35); box-shadow: 0 0 6px var(--glow-dim); }
+        .right-stat { font-size: 18px; font-weight: 600; color: var(--glow); }
+        .sphere-3d { height: 100px; display: flex; align-items: center; justify-content: center; }
+        .sphere-3d canvas { border-radius: 50%; }
+        .env-line { font-size: 10px; color: var(--text-dim); padding: 2px 0; }
+        .env-line span { color: var(--cyan); }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Left -->
+        <div class="left-col" style="display:flex;flex-direction:column;gap:12px">
+            <div class="panel">
+                <div class="panel-title">Активные синапсы</div>
+                <div class="stat">
+                    <div class="stat-dot"></div>
+                    <span class="stat-value" id="synapses">1247</span>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Управление</div>
+                <div class="btn-row">
+                    <div class="btn" title="Синхронизация"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-9-9"/><path d="M21 3v6h-6"/></svg></div>
+                    <div class="btn" title="Пауза"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg></div>
+                    <div class="btn" title="Экспорт"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Энергопоток</div>
+                <div style="height:40px;background:linear-gradient(90deg,rgba(0,255,136,0.1),rgba(0,255,136,0.4),rgba(0,200,255,0.2));border-radius:6px;animation:flow 3s ease-in-out infinite"></div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Здоровье системы</div>
+                <div class="health-ring">
+                    <svg width="44" height="44" viewBox="0 0 44 44">
+                        <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(0,255,136,0.15)" stroke-width="3"/>
+                        <circle id="healthArc" cx="22" cy="22" r="18" fill="none" stroke="var(--glow)" stroke-width="3" stroke-dasharray="0 113" stroke-linecap="round" transform="rotate(-90 22 22)"/>
+                    </svg>
+                    <span class="health-value" id="healthVal">87</span><span style="font-size:10px;color:var(--text-dim)">%</span>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Активность (ч)</div>
+                <div class="chart-bar" id="activityChart"></div>
+            </div>
+            <div class="panel" style="flex:1;min-height:0">
+                <div class="panel-title">Системный лог</div>
+                <div class="log" id="sysLog"></div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Распределение узлов</div>
+                <svg viewBox="0 0 180 80" style="width:100%;height:70px;opacity:0.9">
+                    <ellipse cx="90" cy="40" rx="85" ry="35" fill="none" stroke="rgba(0,255,136,0.1)"/>
+                    <ellipse cx="45" cy="35" rx="25" ry="18" fill="var(--glow-dim)" stroke="rgba(0,255,136,0.3)"/>
+                    <ellipse cx="135" cy="38" rx="28" ry="20" fill="var(--glow-dim)" stroke="rgba(0,255,136,0.3)"/>
+                    <ellipse cx="90" cy="45" rx="35" ry="22" fill="var(--glow-dim)" stroke="rgba(0,255,136,0.4)"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Center: 3D Tree -->
+        <div class="center-area" style="display:flex;flex-direction:column;gap:14px">
+            <div class="panel" style="flex:1;min-height:0;padding:0;position:relative">
+                <div class="tree-overlay">
+                    <div class="tree-title">NEURAL TREE v2.1</div>
+                    <div class="tree-sub">A.D. 4226 — Синтетическая биосеть</div>
+                </div>
+                <div id="canvas-container" style="width:100%;height:100%;min-height:350px"></div>
+                <div class="hint">Перетащите мышью для поворота дерева</div>
+            </div>
+            <div class="bottom-row">
+                <div class="panel">
+                    <div class="panel-title">Пропускная способность (Мб/с)</div>
+                    <div class="chart-bar" id="throughputChart"></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">Время отклика (мс)</div>
+                    <div class="line-chart-wrap"><svg id="latencySvg" viewBox="0 0 200 60" preserveAspectRatio="none"></svg></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">Активность узлов (7 дней)</div>
+                    <div class="grid-heatmap" id="heatmap"></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">Запросов/сек</div>
+                    <div class="chart-bar" id="rpsChart"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right -->
+        <div class="right-col" style="display:flex;flex-direction:column;gap:12px">
+            <div class="panel">
+                <div class="panel-title">Дата / Время</div>
+                <div style="font-size:14px;color:var(--text-dim)" id="datetime">01.03.4226 04:12</div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Активность за неделю</div>
+                <div class="chart-bar" id="weekChart" style="height:70px"></div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Текущий образец</div>
+                <div class="sphere-3d"><canvas id="sphereCanvas" width="80" height="80"></canvas></div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Всего обработано</div>
+                <div class="right-stat" id="totalProcessed">5 271</div>
+                <span style="font-size:9px;color:var(--text-dim)">биологических образцов</span>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Окружение</div>
+                <div class="env-line"><span>Статус:</span> НОРМА</div>
+                <div class="env-line"><span>Температура:</span> 22.3°C</div>
+                <div class="env-line"><span>Влажность:</span> 44%</div>
+                <div class="env-line"><span>Давление:</span> 1013 hPa</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Semantic data & simulation ---
+        const STATE = {
+            health: 87,
+            synapses: 1247,
+            totalProcessed: 5271,
+            activity: [72, 45, 38, 55, 68, 85, 78],
+            throughput: [65, 72, 58, 81, 70, 65, 78, 82, 75, 68],
+            rps: [45, 62, 58, 71, 55, 68, 72, 58],
+            latency: [42, 38, 45, 35, 40, 38, 42, 35, 38, 40],
+            weekData: [60, 75, 68, 82, 78, 85, 72]
+        };
+
+        const LOG_ENTRIES = [
+            { ts: '04:11:58', msg: 'Инициализация системы', type: 'ok' },
+            { ts: '04:11:59', msg: 'Ядро синхронизировано', type: 'ok' },
+            { ts: '04:12:00', msg: 'Узел 0x7F активен', type: 'ok' },
+            { ts: '04:12:01', msg: 'Образец #5271 в обработке', type: 'ok' },
+            { ts: '04:12:02', msg: 'Цепочка верифицирована', type: 'ok' },
+            { ts: '04:12:03', msg: 'Нейроны: 1247 активных', type: 'ok' },
+            { ts: '04:12:04', msg: 'Тепловой режим в норме', type: 'ok' }
+        ];
+
+        // --- Init charts ---
+        function barChart(id, data, max = 100) {
+            const el = document.getElementById(id);
+            el.innerHTML = data.map(h => `<div class="bar" style="height:${(h/max)*100}%"></div>`).join('');
+        }
+        function heatmap() {
+            const grid = document.getElementById('heatmap');
+            for (let i = 0; i < 35; i++) grid.innerHTML += `<div class="cell${Math.random() > 0.35 ? ' active' : ''}"></div>`;
+        }
+        function latencyLine() {
+            const svg = document.getElementById('latencySvg');
+            const pts = STATE.latency.map((v, i) => `${(i/9)*200},${60 - (v/50)*50}`).join(' ');
+            svg.innerHTML = `<polyline points="${pts}" fill="none" stroke="var(--glow)" stroke-width="1.5" opacity="0.9"/><circle cx="200" cy="${60-(STATE.latency[9]/50)*50}" r="3" fill="var(--glow)"/>`;
+        }
+        barChart('activityChart', STATE.activity);
+        barChart('throughputChart', STATE.throughput, 100);
+        barChart('rpsChart', STATE.rps, 100);
+        barChart('weekChart', STATE.weekData);
+        heatmap();
+        latencyLine();
+
+        document.getElementById('sysLog').innerHTML = LOG_ENTRIES.map(e =>
+            `<div class="log-line"><span class="ts">[${e.ts}]</span> <span class="${e.type}">${e.msg}</span></div>`
+        ).join('');
+
+        const health = STATE.health;
+        document.getElementById('healthVal').textContent = health;
+        const circ = 2 * Math.PI * 18;
+        document.getElementById('healthArc').style.strokeDasharray = `${(health/100)*circ} ${circ}`;
+
+        setInterval(() => {
+            const d = new Date();
+            document.getElementById('datetime').textContent = `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        }, 60000);
+
+        // --- 3D Tree (Three.js) ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+        camera.position.set(0, 2, 6);
+        camera.lookAt(0, 0.5, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setClearColor(0x000000, 0);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        function resize() {
+            const w = container.clientWidth, h = container.clientHeight;
+            renderer.setSize(w, h);
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        container.appendChild(renderer.domElement);
+
+        // Tree materials
+        const branchMat = new THREE.MeshBasicMaterial({
+            color: 0x00ff88,
+            transparent: true,
+            opacity: 0.9
+        });
+        const nodeMat = new THREE.MeshBasicMaterial({
+            color: 0xffd54f,
+            transparent: true,
+            opacity: 0.95
+        });
+
+        function createBranch(from, to, radius) {
+            const dir = new THREE.Vector3().subVectors(to, from);
+            const len = dir.length();
+            const geo = new THREE.CylinderGeometry(radius, radius * 1.3, len, 8);
+            const mesh = new THREE.Mesh(geo, branchMat.clone());
+            const mid = new THREE.Vector3().addVectors(from, to).multiplyScalar(0.5);
+            mesh.position.copy(mid);
+            const quat = new THREE.Quaternion().setFromUnitVectors(
+                new THREE.Vector3(0, 1, 0), dir.clone().normalize()
+            );
+            mesh.quaternion.copy(quat);
+            return mesh;
+        }
+
+        function createNode(pos, r = 0.08) {
+            const geo = new THREE.SphereGeometry(r, 10, 10);
+            return new THREE.Mesh(geo, nodeMat.clone());
+        }
+
+        const treeGroup = new THREE.Group();
+        const nodes = [];
+        const branches = [];
+
+        function growBranch(start, dir, length, radius, depth, maxDepth) {
+            if (depth >= maxDepth) return;
+            const end = start.clone().add(dir.clone().multiplyScalar(length));
+            branches.push(createBranch(start, end, radius));
+            treeGroup.add(branches[branches.length - 1]);
+            if (depth === maxDepth - 1) nodes.push(end.clone());
+            const numChildren = depth === 0 ? 4 : (depth < 2 ? 2 : 0);
+            for (let i = 0; i < numChildren; i++) {
+                const angle = (i / numChildren) * Math.PI * 0.8 + Math.PI * 0.1;
+                const tilt = (Math.random() - 0.5) * 0.6;
+                const newDir = new THREE.Vector3(
+                    Math.sin(angle) * Math.cos(tilt),
+                    Math.cos(angle) * 0.6 + 0.4,
+                    Math.cos(angle) * Math.sin(tilt)
+                ).normalize();
+                growBranch(end.clone(), newDir, length * (0.5 + Math.random() * 0.4), radius * 0.6, depth + 1, maxDepth);
+            }
+        }
+
+        const up = new THREE.Vector3(0, 1, 0);
+        growBranch(new THREE.Vector3(0, 0, 0), up, 0.8, 0.06, 0, 4);
+        growBranch(new THREE.Vector3(0, 0.2, 0), new THREE.Vector3(0.8, 0.5, 0).normalize(), 0.5, 0.04, 0, 3);
+        growBranch(new THREE.Vector3(0, 0.2, 0), new THREE.Vector3(-0.7, 0.5, 0.3).normalize(), 0.5, 0.04, 0, 3);
+        growBranch(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.3, -0.5, 0.8).normalize(), 0.4, 0.05, 0, 2);
+        growBranch(new THREE.Vector3(0, 0, 0), new THREE.Vector3(-0.2, -0.6, -0.5).normalize(), 0.4, 0.05, 0, 2);
+
+        nodes.forEach((p, i) => {
+            const m = createNode(p, 0.04 + Math.random() * 0.03);
+            m.position.copy(p);
+            treeGroup.add(m);
+        });
+
+        const rootNode = createNode(new THREE.Vector3(0, 0, 0), 0.1);
+        treeGroup.add(rootNode);
+
+        treeGroup.scale.setScalar(1.5);
+        treeGroup.position.y = 0.2;
+        scene.add(treeGroup);
+
+        const ringGeo = new THREE.TorusGeometry(2.2, 0.02, 8, 64);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.25 });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = Math.PI / 2;
+        scene.add(ring);
+
+        // Orbiting nodes
+        const orbCount = 12;
+        for (let i = 0; i < orbCount; i++) {
+            const a = (i / orbCount) * Math.PI * 2;
+            const orb = createNode(new THREE.Vector3(Math.cos(a) * 2.2, 0.5, Math.sin(a) * 2.2), 0.03);
+            orb.userData = { angle: a };
+            scene.add(orb);
+        }
+
+        let mouseDown = false, prevX = 0, prevY = 0;
+        let rotY = 0, rotX = 0.2;
+        container.addEventListener('mousedown', e => { mouseDown = true; prevX = e.clientX; prevY = e.clientY; });
+        container.addEventListener('mouseup', () => mouseDown = false);
+        container.addEventListener('mousemove', e => {
+            if (!mouseDown) return;
+            rotY += (e.clientX - prevX) * 0.01;
+            rotX += (e.clientY - prevY) * 0.01;
+            rotX = Math.max(-0.8, Math.min(0.8, rotX));
+            prevX = e.clientX; prevY = e.clientY;
+        });
+
+        function animate(t) {
+            requestAnimationFrame(animate);
+            treeGroup.rotation.y = rotY;
+            treeGroup.rotation.x = rotX;
+            treeGroup.rotation.y += 0.002;
+            scene.children.forEach(c => {
+                if (c.isMesh && c.userData && typeof c.userData.angle === 'number') {
+                    c.position.x = Math.cos(c.userData.angle + t * 0.0005) * 2.2;
+                    c.position.z = Math.sin(c.userData.angle + t * 0.0005) * 2.2;
+                }
+            });
+            renderer.render(scene, camera);
+        }
+        animate(0);
+
+        // --- 3D Sample sphere (2D canvas fallback with gradient) ---
+        const sc = document.getElementById('sphereCanvas');
+        const sctx = sc.getContext('2d');
+        const gradient = sctx.createRadialGradient(25, 25, 0, 40, 40, 50);
+        gradient.addColorStop(0, 'rgba(0,255,136,0.6)');
+        gradient.addColorStop(0.5, 'rgba(0,212,170,0.3)');
+        gradient.addColorStop(1, 'rgba(0,100,120,0.2)');
+        function drawSphere() {
+            sctx.clearRect(0, 0, 80, 80);
+            sctx.fillStyle = gradient;
+            sctx.beginPath();
+            sctx.arc(40, 40, 35, 0, Math.PI * 2);
+            sctx.fill();
+            sctx.strokeStyle = 'rgba(0,255,136,0.4)';
+            sctx.lineWidth = 1;
+            sctx.stroke();
+            requestAnimationFrame(drawSphere);
+        }
+        drawSphere();
+    </script>
+</body>
+</html>

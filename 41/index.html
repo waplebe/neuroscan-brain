@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuroScan v41 — Оцифровка мозга</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060810;--panel:#0b1221;--border:rgba(50,150,255,0.13);
+  --b2:rgba(50,150,255,0.24);--accent:#3ab8ff;--text:#ccd8f0;
+  --dim:rgba(200,216,240,0.4);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Courier New',Consolas,monospace}
+body{display:flex;flex-direction:column}
+.hdr{height:46px;flex-shrink:0;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;padding:0 14px}
+.logo{font-size:13px;font-weight:700;letter-spacing:.18em;color:var(--accent);white-space:nowrap}
+.logo em{font-style:normal;color:var(--dim);font-weight:400;font-size:11px}
+.sep{width:1px;height:22px;background:var(--b2)}
+.hm{display:flex;flex-direction:column;min-width:50px}
+.hm-l{font-size:7px;letter-spacing:.1em;color:var(--dim);margin-bottom:1px}
+.hm-v{font-size:12px;color:var(--accent);font-weight:700}
+.spacer{flex:1}
+.hbtns{display:flex;gap:5px;flex-wrap:wrap}
+.hb{padding:4px 8px;font-size:8px;letter-spacing:.07em;cursor:pointer;background:rgba(50,180,255,.07);border:1px solid var(--border);color:var(--dim);transition:.18s;border-radius:2px;user-select:none;white-space:nowrap}
+.hb:hover{background:rgba(50,180,255,.15);color:var(--accent);border-color:var(--b2)}
+.hb.on{background:rgba(50,180,255,.2);color:var(--accent);border-color:var(--b2)}
+.hb.state{border-color:rgba(100,220,150,.25);color:rgba(100,220,180,.7)}
+.hb.state.on{background:rgba(80,200,130,.15);color:#50e8a0;border-color:rgba(80,200,130,.5)}
+
+.main{display:flex;flex:1;min-height:0;overflow:hidden}
+.sl{width:206px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sl-hd{padding:6px 12px;font-size:8px;letter-spacing:.12em;color:var(--dim);background:rgba(0,0,0,.3);border-bottom:1px solid var(--border);flex-shrink:0}
+.rlist{flex:1;overflow-y:auto;padding:3px 0}
+.rlist::-webkit-scrollbar{width:3px}
+.rlist::-webkit-scrollbar-thumb{background:rgba(50,180,255,.2)}
+.ri{display:flex;align-items:center;gap:7px;padding:4px 12px;font-size:9.5px;cursor:pointer;transition:.15s}
+.ri:hover{background:rgba(50,180,255,.07)}
+.ri.sel{background:rgba(50,180,255,.12);color:var(--accent)}
+.rdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.rname{flex:1;font-size:9px}
+.rpct{font-size:8px;color:var(--dim)}
+.r-bar{width:26px;height:3px;background:rgba(50,180,255,.1);border-radius:1px;overflow:hidden;margin-top:1px}
+.r-bar-fill{height:100%;background:rgba(50,180,255,.55);transition:.6s}
+
+.cw{flex:1;position:relative;min-width:0;background:#050508;overflow:hidden}
+.cw::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:linear-gradient(rgba(50,180,255,.013) 1px,transparent 1px),linear-gradient(90deg,rgba(50,180,255,.013) 1px,transparent 1px);
+  background-size:38px 38px}
+#c{display:block;width:100%;height:100%;position:relative;z-index:2}
+#lc-lines{position:absolute;inset:0;z-index:8;pointer-events:none}
+.lc{position:absolute;inset:0;pointer-events:none;z-index:10}
+.lbl{position:absolute;font-size:8px;letter-spacing:.07em;white-space:nowrap;color:rgba(200,225,255,.6);background:rgba(5,10,20,.75);padding:2px 6px;border-left:2px solid rgba(50,180,255,.35);transform:translateY(-50%);pointer-events:none;transition:.2s}
+.lbl.sel{color:var(--accent);border-color:var(--accent);background:rgba(5,15,38,.92)}
+
+.state-badge{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:15;pointer-events:none;font-size:9px;letter-spacing:.15em;padding:3px 12px;border-radius:2px;opacity:.9}
+.clip-badge{position:absolute;top:36px;left:50%;transform:translateX(-50%);background:rgba(255,180,50,.12);border:1px solid rgba(255,180,50,.4);color:rgba(255,200,80,.9);font-size:8px;padding:2px 10px;z-index:15;pointer-events:none;display:none;letter-spacing:.1em}
+.clip-badge.vis{display:block}
+
+.sr{width:190px;flex-shrink:0;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+.sr::-webkit-scrollbar{width:3px}
+.sr::-webkit-scrollbar-thumb{background:rgba(50,180,255,.2)}
+.sr-hd{padding:6px 12px;font-size:8px;letter-spacing:.12em;color:var(--dim);background:rgba(0,0,0,.3);border-bottom:1px solid var(--border);flex-shrink:0}
+.mb{padding:8px 12px;border-bottom:1px solid var(--border)}
+.mb-t{font-size:7.5px;letter-spacing:.1em;color:var(--dim);margin-bottom:4px}
+.mv{font-size:19px;font-weight:700;color:var(--accent);line-height:1}
+.mu{font-size:8px;color:var(--dim);margin-top:1px}
+.mch{height:24px;display:flex;align-items:flex-end;gap:2px;margin-top:5px}
+.mbar{flex:1;background:rgba(50,180,255,.28);border-radius:1px;min-height:2px;transition:.4s}
+.eeg-wrap{padding:8px 12px;border-bottom:1px solid var(--border)}
+#eeg{display:block;width:100%;height:54px;background:rgba(0,0,0,.4);border:1px solid rgba(50,180,255,.1)}
+.agrid{padding:8px 12px;border-bottom:1px solid var(--border)}
+.acell{width:8px;height:8px;border-radius:1px;background:rgba(50,180,255,.09);display:inline-block;margin:1px}
+
+.ip{position:absolute;bottom:12px;left:216px;background:rgba(5,9,22,.97);border:1px solid var(--b2);padding:13px;width:230px;z-index:20;display:none}
+.ip.vis{display:block}
+.ip h3{font-size:10px;color:var(--accent);letter-spacing:.1em;margin-bottom:9px}
+.ipr{font-size:8.5px;color:var(--dim);display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(50,180,255,.06)}
+.ipr span{color:var(--text)}
+.iclose{position:absolute;top:8px;right:10px;cursor:pointer;font-size:16px;color:var(--dim);background:none;border:none}
+.iclose:hover{color:var(--text)}
+.ip-act-bar{height:4px;background:rgba(50,180,255,.15);border-radius:2px;margin-top:8px;overflow:hidden}
+.ip-act-fill{height:100%;background:var(--accent);transition:.8s}
+
+.sbar{height:33px;flex-shrink:0;background:var(--panel);border-top:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 14px;font-size:8.5px;color:var(--dim)}
+.dot-live{width:6px;height:6px;border-radius:50%;background:#3dff88;box-shadow:0 0 6px #3dff88;animation:dp 2s ease-in-out infinite}
+@keyframes dp{0%,100%{opacity:1}50%{opacity:.35}}
+.sprog{flex:1;height:2px;background:rgba(50,180,255,.1);border-radius:1px;overflow:hidden}
+.spbar{height:100%;background:linear-gradient(90deg,var(--accent),#88eeff);width:0;transition:.5s}
+.fps{position:absolute;bottom:5px;right:6px;font-size:8px;color:rgba(200,216,240,.22);z-index:15;pointer-events:none}
+.tt{position:fixed;background:rgba(4,9,20,.93);border:1px solid var(--b2);padding:4px 10px;font-size:9px;color:var(--text);pointer-events:none;z-index:200;display:none;white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="logo">NEUROSCAN <em>v41</em></div>
+  <div class="sep"></div>
+  <div class="hm"><div class="hm-l">НЕЙРОНЫ</div><div class="hm-v">86B</div></div>
+  <div class="hm"><div class="hm-l">СИНАПСЫ</div><div class="hm-v" id="hv-syn">—</div></div>
+  <div class="hm"><div class="hm-l">АКТИВНОСТЬ</div><div class="hm-v" id="hv-act">—</div></div>
+  <div class="hm"><div class="hm-l">ЗДОРОВЬЕ</div><div class="hm-v" id="hv-hlth">—</div></div>
+  <div class="sep"></div>
+  <!-- Brain states -->
+  <div class="hb state on" id="bAwake">БОДРСТВ.</div>
+  <div class="hb state" id="bSleep">СОН</div>
+  <div class="hb state" id="bMedit">МЕДИТ.</div>
+  <div class="hb state" id="bStress">СТРЕСС</div>
+  <div class="spacer"></div>
+  <div class="hbtns">
+    <div class="hb on"  id="bAnat">АНАТОМИЯ</div>
+    <div class="hb"     id="bFunc">ФУНКЦИИ</div>
+    <div class="hb"     id="bConn">ТРАКТЫ</div>
+    <div class="hb on"  id="bLbl">МЕТКИ</div>
+    <div class="hb on"  id="bRot">↺</div>
+    <div class="hb"     id="bWire">КАРКАС</div>
+    <div class="hb"     id="bSag">⊟ САГИТ.</div>
+    <div class="hb"     id="bAxl">⊠ АКСИ.</div>
+    <div class="hb"     id="bCor">⊡ КОРОН.</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="sl">
+    <div class="sl-hd">АНАТОМИЧЕСКИЕ РЕГИОНЫ (17)</div>
+    <div class="rlist" id="rlist"></div>
+  </div>
+
+  <div class="cw" id="cw">
+    <canvas id="c"></canvas>
+    <canvas id="lc-lines"></canvas>
+    <div class="lc" id="lc"></div>
+    <div class="fps">FPS:<span id="fps">60</span></div>
+    <div class="state-badge" id="state-badge"></div>
+    <div class="clip-badge" id="clip-badge">СРЕЗ АКТИВЕН</div>
+    <div class="ip" id="ip">
+      <button class="iclose" id="iclose">×</button>
+      <h3 id="ip-name"></h3>
+      <div id="ip-body"></div>
+      <div class="ip-act-bar"><div class="ip-act-fill" id="ip-act-fill"></div></div>
+    </div>
+  </div>
+
+  <div class="sr">
+    <div class="sr-hd">НЕЙРОННЫЕ МЕТРИКИ</div>
+    <div class="mb">
+      <div class="mb-t">НЕЙРОННАЯ АКТИВНОСТЬ</div>
+      <div class="mv" id="mv-act">74</div><div class="mu">% базовой линии</div>
+      <div class="mch" id="mch-act"></div>
+    </div>
+    <div class="eeg-wrap">
+      <div class="mb-t">ЭЭГ — <span id="eeg-band">АЛЬФА-РИТМ</span></div>
+      <canvas id="eeg"></canvas>
+    </div>
+    <div class="mb">
+      <div class="mb-t">ПОТРЕБЛЕНИЕ O₂</div>
+      <div class="mv" id="mv-o2">3.2</div><div class="mu">мл/100г/мин</div>
+      <div class="mch" id="mch-o2"></div>
+    </div>
+    <div class="mb">
+      <div class="mb-t">ТРАКТОГРАФИЯ (FA)</div>
+      <div class="mv" id="mv-fa">91</div><div class="mu">% целостность</div>
+      <div class="mch" id="mch-fa"></div>
+    </div>
+    <div class="mb">
+      <div class="mb-t">ЧАСТОТА ЭЭГ</div>
+      <div class="mv" id="mv-hz">12</div><div class="mu" id="hz-label">Гц · Альфа</div>
+      <div class="mch" id="mch-hz"></div>
+    </div>
+    <div class="mb">
+      <div class="mb-t">ПЕРФУЗИЯ (ЦБК)</div>
+      <div class="mv" id="mv-cbf">54</div><div class="mu">мл/100г/мин</div>
+      <div class="mch" id="mch-cbf"></div>
+    </div>
+    <div class="agrid">
+      <div class="mb-t" style="margin-bottom:6px">ЗОНАЛЬНАЯ АКТИВНОСТЬ</div>
+      <div id="agrid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="sbar">
+  <div class="dot-live"></div>
+  <span>СКАНИРОВАНИЕ АКТИВНО</span>
+  <span style="color:var(--b2)">│</span>
+  <span id="s-state">СОСТОЯНИЕ: БОДРСТВОВАНИЕ</span>
+  <div class="sprog"><div class="spbar" id="spbar"></div></div>
+  <span id="s-pct">0%</span>
+  <span style="color:var(--b2)">│</span>
+  <span id="s-clk">--:--:--</span>
+</div>
+<div class="tt" id="tt"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════════════════
+// BRAIN STATES
+// ══════════════════════════════════════════════════════════
+const STATES = {
+  awake: { name:'БОДРСТВОВАНИЕ', eegHz:10, eegAmp:1.0, actBase:0.72, color:'#50e8a0',
+           bg:0x050508, badge:'rgba(80,232,160,0.12)', border:'rgba(80,232,160,0.5)', bands:'Альфа' },
+  sleep: { name:'СОН (дельта)', eegHz:2,  eegAmp:1.8, actBase:0.22, color:'#7080ff',
+           bg:0x050820, badge:'rgba(80,100,255,0.12)', border:'rgba(80,120,255,0.5)', bands:'Дельта' },
+  medit: { name:'МЕДИТАЦИЯ',    eegHz:7,  eegAmp:0.8, actBase:0.55, color:'#e8c050',
+           bg:0x080a05, badge:'rgba(232,192,80,0.12)',  border:'rgba(232,192,80,0.5)',  bands:'Тета' },
+  stress:{ name:'СТРЕСС',       eegHz:22, eegAmp:0.55,actBase:0.88, color:'#ff6060',
+           bg:0x090508, badge:'rgba(255,80,80,0.12)',  border:'rgba(255,80,80,0.5)',  bands:'Бета/Гамма' },
+};
+let curState = 'awake';
+
+// ══════════════════════════════════════════════════════════
+// REGIONS
+// ══════════════════════════════════════════════════════════
+const REGIONS = [
+  { key:'frontal-l',    name:'Лобная (Л)',        color:'#4fc3f7', hex:0x4fc3f7, pos:[-0.75,0.65,1.05],  ba:'BA4,6,8,9,10,44,45', role:'Планирование, зона Брока', fn:'Исполнительные функции' },
+  { key:'frontal-r',    name:'Лобная (П)',        color:'#29b6f6', hex:0x29b6f6, pos:[0.75,0.65,1.05],   ba:'BA4,6,8,9,10',       role:'Планирование, внимание',   fn:'Исполнительные функции' },
+  { key:'parietal-l',   name:'Теменная (Л)',      color:'#81c784', hex:0x81c784, pos:[-0.7,0.85,-0.1],   ba:'BA1,2,3,5,7,39,40',  role:'Соматосенсорная кора',     fn:'Тактильное восприятие' },
+  { key:'parietal-r',   name:'Теменная (П)',      color:'#66bb6a', hex:0x66bb6a, pos:[0.7,0.85,-0.1],    ba:'BA1,2,3,5,7',        role:'Пространственная ориент.', fn:'Тактильное восприятие' },
+  { key:'temporal-l',   name:'Височная (Л)',      color:'#ffb74d', hex:0xffb74d, pos:[-1.1,0.1,0.25],    ba:'BA20,21,22,38,41,42',role:'Речь, зона Вернике',       fn:'Слух и память' },
+  { key:'temporal-r',   name:'Височная (П)',      color:'#ffa726', hex:0xffa726, pos:[1.1,0.1,0.25],     ba:'BA20,21,22,38',      role:'Музыкальное восприятие',   fn:'Слух и память' },
+  { key:'occipital',    name:'Затылочная',        color:'#ef5350', hex:0xef5350, pos:[0,0.3,-1.35],      ba:'BA17,18,19',         role:'Зрительная кора V1–V5',   fn:'Обработка зрения' },
+  { key:'cingulate',    name:'Поясная кора',      color:'#ce93d8', hex:0xce93d8, pos:[0,0.95,0.35],      ba:'BA24,25,32,33',      role:'Эмоции, конфликт',         fn:'Аффективная регуляция' },
+  { key:'cerebellum',   name:'Мозжечок',          color:'#b39ddb', hex:0xb39ddb, pos:[0,-0.9,-1.2],      ba:'—',                  role:'Тонкая моторика, баланс',  fn:'Координация движений' },
+  { key:'brainstem',    name:'Ствол мозга',       color:'#ff7043', hex:0xff7043, pos:[0,-1.45,-0.55],    ba:'—',                  role:'Дыхание, ЧСС, сон',        fn:'Вегетативная регуляция' },
+  { key:'thalamus',     name:'Таламус',           color:'#26c6da', hex:0x26c6da, pos:[0,0.15,0.0],       ba:'—',                  role:'Сенсорное реле',           fn:'Переключатель сигналов' },
+  { key:'hippocampus-l',name:'Гиппокамп (Л)',    color:'#9ccc65', hex:0x9ccc65, pos:[-0.65,-0.15,-0.35],ba:'BA28,34,35,36',      role:'Долгосрочная память',      fn:'Консолидация памяти' },
+  { key:'hippocampus-r',name:'Гиппокамп (П)',    color:'#7cb342', hex:0x7cb342, pos:[0.65,-0.15,-0.35], ba:'BA28,34,35,36',      role:'Пространственная карта',   fn:'Консолидация памяти' },
+  { key:'amygdala-l',   name:'Миндалина (Л)',     color:'#f48fb1', hex:0xf48fb1, pos:[-0.7,-0.15,0.35],  ba:'—',                  role:'Страх, тревога',           fn:'Эмоциональная память' },
+  { key:'amygdala-r',   name:'Миндалина (П)',     color:'#f06292', hex:0xf06292, pos:[0.7,-0.15,0.35],   ba:'—',                  role:'Эмоциональная реакция',    fn:'Эмоциональная память' },
+  { key:'basal-ganglia',name:'Базальные ганглии', color:'#80cbc4', hex:0x80cbc4, pos:[0.25,0.05,0.3],    ba:'—',                  role:'Двигательный контроль',    fn:'Подкорковые ядра' },
+  { key:'prefrontal',   name:'Префронтальная',    color:'#80deea', hex:0x80deea, pos:[0,0.75,1.55],      ba:'BA9,10,11,12,46,47', role:'Рабочая память, личность', fn:'Высшие когн. функции' },
+];
+
+// ══════════════════════════════════════════════════════════
+// THREE.JS
+// ══════════════════════════════════════════════════════════
+const canvas=document.getElementById('c'), wrap=document.getElementById('cw');
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x050508);
+const camera=new THREE.PerspectiveCamera(42,1,0.1,100);
+camera.position.set(0,0.4,5.8); camera.lookAt(0,0,0);
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.localClippingEnabled=true;
+
+function resize(){
+  const w=wrap.clientWidth,h=wrap.clientHeight;
+  renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
+  const ll=document.getElementById('lc-lines');ll.width=w;ll.height=h;
+  const ee=document.getElementById('eeg');ee.width=ee.offsetWidth||170;ee.height=54;
+}
+resize(); window.addEventListener('resize',resize);
+
+// LIGHTS
+scene.add(new THREE.HemisphereLight(0xfff4f0,0x331008,0.5));
+const sun=new THREE.DirectionalLight(0xfff8f0,1.25);sun.position.set(3,5,4);scene.add(sun);
+const fill=new THREE.DirectionalLight(0xc0d8ff,0.42);fill.position.set(-4,0.5,-3);scene.add(fill);
+const rim=new THREE.PointLight(0xff7040,0.28,18);rim.position.set(0,-4,-3);scene.add(rim);
+const topLight=new THREE.DirectionalLight(0xffffff,0.3);topLight.position.set(0,8,0);scene.add(topLight);
+
+// ══════════════════════════════════════════════════════════
+// NOISE
+// ══════════════════════════════════════════════════════════
+const fract=x=>x-Math.floor(x);
+const h3=(x,y,z)=>fract(Math.sin(x*127.1+y*311.7+z*74.7)*43758.5453);
+function vn(x,y,z){
+  const ix=Math.floor(x),iy=Math.floor(y),iz=Math.floor(z),
+        fx=x-ix,fy=y-iy,fz=z-iz,
+        ux=fx*fx*(3-2*fx),uy=fy*fy*(3-2*fy),uz=fz*fz*(3-2*fz);
+  return h3(ix,iy,iz)*(1-ux)*(1-uy)*(1-uz)+h3(ix+1,iy,iz)*ux*(1-uy)*(1-uz)+
+    h3(ix,iy+1,iz)*(1-ux)*uy*(1-uz)+h3(ix+1,iy+1,iz)*ux*uy*(1-uz)+
+    h3(ix,iy,iz+1)*(1-ux)*(1-uy)*uz+h3(ix+1,iy,iz+1)*ux*(1-uy)*uz+
+    h3(ix,iy+1,iz+1)*(1-ux)*uy*uz+h3(ix+1,iy+1,iz+1)*ux*uy*uz;
+}
+function fbm(x,y,z,oct){let v=0,a=0.5,f=1.9;for(let i=0;i<oct;i++){v+=a*(vn(x*f,y*f,z*f)*2-1);a*=0.52;f*=2.05;}return v;}
+
+// ══════════════════════════════════════════════════════════
+// BRAIN GEOMETRY WITH VERTEX COLORS
+// ══════════════════════════════════════════════════════════
+function makeHemi(side){
+  const geo=new THREE.SphereGeometry(1,120,88);
+  const a=geo.attributes.position.array;
+  const cnt=geo.attributes.position.count;
+  const cols=new Float32Array(cnt*3);
+  const seed=side*0.31;
+
+  for(let i=0;i<cnt;i++){
+    let x=a[i*3],y=a[i*3+1],z=a[i*3+2];
+    // Brain shape proportions
+    x*=0.93; y*=0.70; z*=1.10;
+    y+=z*(-0.10); // posterior slope
+
+    const len=Math.sqrt(x*x+y*y+z*z)||1e-6;
+    const nx=x/len,ny=y/len,nz=z/len;
+
+    // PRIMARY GYRAL DISPLACEMENT (fbm noise → gyri/sulci)
+    const gCoarse=fbm(nx*3.0+seed,ny*3.3,nz*2.8,4);   // large gyri
+    const gFine  =fbm(nx*7.5+seed*1.7,ny*8,nz*7,3)*0.3; // fine sulci
+    const d=(gCoarse+gFine)*0.135;
+
+    x+=nx*d; y+=ny*d; z+=nz*d;
+
+    // ── VERTEX COLOR: gyri=bright pink, sulci=dark ──────
+    // d ≈ [-0.09, +0.09]
+    const t=Math.max(0,Math.min(1,(d+0.085)/0.17));
+    // sulcus color: RGB(0.38, 0.18, 0.13)   → gyrus: RGB(0.88, 0.60, 0.50)
+    cols[i*3  ]=0.38+t*0.50;
+    cols[i*3+1]=0.18+t*0.42;
+    cols[i*3+2]=0.13+t*0.37;
+
+    // ── LONGITUDINAL FISSURE ─────────────────────────────
+    const med=Math.exp(-x*x*30)*0.20;
+    x*=(1-med*0.82); y-=med*0.07;
+    // Darken medial wall
+    const mf=Math.exp(-x*x*30);
+    cols[i*3  ]*=(1-mf*0.5); cols[i*3+1]*=(1-mf*0.5); cols[i*3+2]*=(1-mf*0.5);
+
+    // ── SYLVIAN FISSURE (deep lateral sulcus) ───────────
+    const sY=(y+0.20)/0.30,sZ=(z-0.10)/0.55,sX=(Math.abs(x)-0.36)/0.48;
+    const sylv=Math.max(0,1-sY*sY)*Math.max(0,1-sZ*sZ)*Math.max(0,Math.min(1,sX));
+    if(sylv>0.01){
+      const dd=sylv*0.20; y-=dd; x-=Math.sign(x)*dd*0.45;
+      // Darken in fissure
+      cols[i*3  ]*=(1-sylv*0.7); cols[i*3+1]*=(1-sylv*0.7); cols[i*3+2]*=(1-sylv*0.7);
+    }
+
+    // ── CENTRAL SULCUS (Rolando) ─────────────────────────
+    const csD=(z-0.22)/0.10,csH=Math.max(0,(y-0.20)/0.68);
+    const cs=Math.exp(-csD*csD)*csH;
+    z-=cs*0.10;
+    cols[i*3  ]*=(1-cs*0.35); cols[i*3+1]*=(1-cs*0.35); cols[i*3+2]*=(1-cs*0.35);
+
+    // ── PARIETO-OCCIPITAL SULCUS ─────────────────────────
+    const posD=(z+0.52)/0.10,posH=Math.max(0,(y-0.1)/0.7);
+    const pos=Math.exp(-posD*posD)*posH;
+    z-=pos*0.08; y-=pos*0.04;
+    cols[i*3  ]*=(1-pos*0.3); cols[i*3+1]*=(1-pos*0.3); cols[i*3+2]*=(1-pos*0.3);
+
+    // ── CALCARINE SULCUS (occipital, z<-0.7) ────────────
+    if(z<-0.65&&Math.abs(x)<0.5){
+      const calc=Math.exp(-Math.pow(z+0.75,2)*25)*Math.max(0,0.5-Math.abs(x));
+      y-=calc*0.08;
+      cols[i*3  ]*=(1-calc*0.4); cols[i*3+1]*=(1-calc*0.4); cols[i*3+2]*=(1-calc*0.4);
+    }
+
+    // ── OFFSET TO SIDE ───────────────────────────────────
+    x+=side*0.86;
+    a[i*3]=x; a[i*3+1]=y; a[i*3+2]=z;
+
+    // Clamp colors
+    cols[i*3  ]=Math.max(0,Math.min(1,cols[i*3  ]));
+    cols[i*3+1]=Math.max(0,Math.min(1,cols[i*3+1]));
+    cols[i*3+2]=Math.max(0,Math.min(1,cols[i*3+2]));
+  }
+  geo.setAttribute('color',new THREE.BufferAttribute(cols,3));
+  geo.attributes.position.needsUpdate=true;
+  geo.computeVertexNormals();
+  return geo;
+}
+
+function makeCerebellum(){
+  const geo=new THREE.SphereGeometry(0.52,72,52);
+  const a=geo.attributes.position.array;
+  const cnt=geo.attributes.position.count;
+  const cols=new Float32Array(cnt*3);
+  for(let i=0;i<cnt;i++){
+    let x=a[i*3],y=a[i*3+1],z=a[i*3+2];
+    x*=1.35;y*=0.68;
+    const len=Math.sqrt(x*x+y*y+z*z)||1e-6;
+    const fn=fbm(x/len*9,y/len*5,z/len*9,3)*0.065+fbm(x/len*18,y/len*12,z/len*18,2)*0.025;
+    a[i*3]=x+(x/len)*fn; a[i*3+1]=y+(y/len)*fn; a[i*3+2]=z+(z/len)*fn;
+    // Cerebellar color: warm pinkish with folia shading
+    const t2=Math.max(0,Math.min(1,(fn+0.05)/0.10));
+    cols[i*3]=0.40+t2*0.38; cols[i*3+1]=0.20+t2*0.30; cols[i*3+2]=0.15+t2*0.28;
+  }
+  geo.setAttribute('color',new THREE.BufferAttribute(cols,3));
+  geo.attributes.position.needsUpdate=true; geo.computeVertexNormals();
+  return geo;
+}
+
+// ══════════════════════════════════════════════════════════
+// BUILD SCENE
+// ══════════════════════════════════════════════════════════
+const brainGrp=new THREE.Group(); scene.add(brainGrp);
+
+const cortexMat=(em)=>new THREE.MeshPhongMaterial({
+  vertexColors:true, shininess:20,
+  specular:new THREE.Color(0xffe0d0), emissive:em||0x000000, emissiveIntensity:0,
+});
+const matL=cortexMat(), matR=cortexMat();
+const mshL=new THREE.Mesh(makeHemi(-1),matL);
+const mshR=new THREE.Mesh(makeHemi(1),matR);
+brainGrp.add(mshL,mshR);
+
+// Cerebellum
+const cerM=new THREE.Mesh(makeCerebellum(),cortexMat());
+cerM.position.set(0,-0.85,-1.22); cerM.rotation.x=0.18;
+brainGrp.add(cerM);
+
+// Brainstem
+const bsM=new THREE.Mesh(
+  new THREE.CylinderGeometry(0.15,0.11,0.88,14),
+  new THREE.MeshPhongMaterial({color:0xb87060,shininess:15,specular:0xffe0d0})
+);
+bsM.position.set(0,-1.32,-0.62); bsM.rotation.x=0.32; brainGrp.add(bsM);
+
+// Corpus callosum
+const ccM=new THREE.Mesh(
+  new THREE.TorusGeometry(0.52,0.042,8,40,Math.PI),
+  new THREE.MeshPhongMaterial({color:0xd0b8a8,shininess:12,specular:0xffe0d0})
+);
+ccM.position.set(0,0.52,0.12); ccM.rotation.x=-0.28; ccM.rotation.z=Math.PI;
+brainGrp.add(ccM);
+
+// ── VENTRICLES (lateral, visible in cross-section) ────────
+const ventGeo=new THREE.SphereGeometry(0.28,24,18);
+ventGeo.scale(1.6,0.8,2.2);
+const ventMat=new THREE.MeshPhongMaterial({color:0x88ccff,transparent:true,opacity:0.55,shininess:60,specular:0xffffff});
+const ventL=new THREE.Mesh(ventGeo,ventMat); ventL.position.set(-0.38,0.35,-0.1); brainGrp.add(ventL);
+const ventR=new THREE.Mesh(new THREE.SphereGeometry(0.28,24,18),ventMat.clone()); 
+ventR.geometry.scale(1.6,0.8,2.2); ventR.position.set(0.38,0.35,-0.1); brainGrp.add(ventR);
+// 3rd ventricle
+const vent3=new THREE.Mesh(new THREE.SphereGeometry(0.1,12,10),ventMat.clone());
+vent3.geometry.scale(0.5,1.2,1.0); vent3.position.set(0,0.15,-0.05); brainGrp.add(vent3);
+
+// ── THALAMUS (subcortical, visible in cross-section) ────────
+const thalMat=new THREE.MeshPhongMaterial({color:0xc8a870,shininess:15,specular:0xffe0d0});
+const thalL=new THREE.Mesh(new THREE.SphereGeometry(0.2,20,16),thalMat);
+thalL.geometry.scale(1,0.8,1.3); thalL.position.set(-0.22,0.12,0.0); brainGrp.add(thalL);
+const thalR=new THREE.Mesh(new THREE.SphereGeometry(0.2,20,16),thalMat.clone());
+thalR.geometry.scale(1,0.8,1.3); thalR.position.set(0.22,0.12,0.0); brainGrp.add(thalR);
+
+brainGrp.scale.setScalar(0.98);
+brainGrp.position.y=0.08;
+
+// ── FUNCTIONAL OVERLAYS ──────────────────────────────────
+const regionMsh={};
+const regionAct={};
+REGIONS.forEach(r=>{
+  const m=new THREE.Mesh(
+    new THREE.SphereGeometry(0.3,20,16),
+    new THREE.MeshPhongMaterial({color:r.hex,emissive:r.hex,emissiveIntensity:.4,transparent:true,opacity:0,depthWrite:false})
+  );
+  m.position.set(...r.pos); m.userData={...r};
+  brainGrp.add(m); regionMsh[r.key]=m; regionAct[r.key]=0.3+Math.random()*0.6;
+});
+
+// ── TRACTS ───────────────────────────────────────────────
+const TDEFS=[
+  ['frontal-l','parietal-l'],['frontal-r','parietal-r'],
+  ['parietal-l','occipital'],['parietal-r','occipital'],
+  ['temporal-l','hippocampus-l'],['temporal-r','hippocampus-r'],
+  ['thalamus','frontal-l'],['thalamus','frontal-r'],['thalamus','occipital'],
+  ['brainstem','cerebellum'],['amygdala-l','hippocampus-l'],['amygdala-r','hippocampus-r'],
+  ['frontal-l','frontal-r'],['prefrontal','frontal-l'],['prefrontal','frontal-r'],
+];
+const tractGrp=new THREE.Group();
+const tractCurves=[];
+TDEFS.forEach(([a,b])=>{
+  const ra=REGIONS.find(r=>r.key===a),rb=REGIONS.find(r=>r.key===b);
+  if(!ra||!rb)return;
+  const p0=new THREE.Vector3(...ra.pos),p1=new THREE.Vector3(...rb.pos);
+  const mid=p0.clone().add(p1).multiplyScalar(0.5); mid.y+=0.2;
+  const curve=new THREE.QuadraticBezierCurve3(p0,mid,p1);
+  tractCurves.push(curve);
+  tractGrp.add(new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(curve.getPoints(28)),
+    new THREE.LineBasicMaterial({color:0x1a5568,transparent:true,opacity:.45})
+  ));
+});
+brainGrp.add(tractGrp); tractGrp.visible=false;
+
+// ── NEURAL PARTICLES ─────────────────────────────────────
+const NP=tractCurves.length*5;
+const pPos=new Float32Array(NP*3);
+const pData=[];
+for(let i=0;i<NP;i++) pData.push({ci:Math.floor(i/5),t:(i%5)/5,spd:.004+Math.random()*.006});
+const pGeo=new THREE.BufferGeometry();
+pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));
+const pMesh=new THREE.Points(pGeo,new THREE.PointsMaterial({color:0x88ddff,size:.055,transparent:true,opacity:.9,sizeAttenuation:true}));
+brainGrp.add(pMesh); pMesh.visible=false;
+
+// ══════════════════════════════════════════════════════════
+// CLIPPING
+// ══════════════════════════════════════════════════════════
+const clipSag=new THREE.Plane(new THREE.Vector3(-1,0,0),0);
+const clipAxl=new THREE.Plane(new THREE.Vector3(0,-1,0),0.3);
+const clipCor=new THREE.Plane(new THREE.Vector3(0,0,1),0);
+let clipMode='none';
+const allMats=[matL,matR,cerM.material,bsM.material,ccM.material,ventMat,thalMat];
+
+function applyClip(){
+  const planes=clipMode==='sagittal'?[clipSag]:clipMode==='axial'?[clipAxl]:clipMode==='coronal'?[clipCor]:[];
+  renderer.clippingPlanes=planes;
+  allMats.forEach(m=>{m.clippingPlanes=planes;m.side=planes.length>0?THREE.DoubleSide:THREE.FrontSide;});
+  const badge=document.getElementById('clip-badge');
+  badge.classList.toggle('vis',planes.length>0);
+  if(clipMode==='sagittal') badge.textContent='СРЕЗ: САГИТТАЛЬНЫЙ';
+  else if(clipMode==='axial') badge.textContent='СРЕЗ: АКСИАЛЬНЫЙ';
+  else if(clipMode==='coronal') badge.textContent='СРЕЗ: КОРОНАЛЬНЫЙ';
+}
+
+// ══════════════════════════════════════════════════════════
+// LABELS
+// ══════════════════════════════════════════════════════════
+const labCont=document.getElementById('lc');
+const lblEls={};
+let labelsOn=true;
+REGIONS.forEach(r=>{
+  const el=document.createElement('div');el.className='lbl';el.textContent=r.name;el.dataset.key=r.key;
+  labCont.appendChild(el); lblEls[r.key]=el;
+});
+const lcCanvas=document.getElementById('lc-lines');
+const lcCtx=lcCanvas.getContext('2d');
+
+function updateLabels(){
+  const rect=canvas.getBoundingClientRect();
+  lcCtx.clearRect(0,0,lcCanvas.width,lcCanvas.height);
+  if(!labelsOn){Object.values(lblEls).forEach(el=>el.style.display='none');return;}
+  REGIONS.forEach(r=>{
+    const p=new THREE.Vector3(...r.pos).applyMatrix4(brainGrp.matrixWorld);
+    const v=p.clone().project(camera);
+    const el=lblEls[r.key]; if(!el)return;
+    if(v.z>1){el.style.display='none';return;}
+    const sx=(v.x+1)*rect.width/2, sy=(-v.y+1)*rect.height/2;
+    el.style.display=''; el.style.left=sx+'px'; el.style.top=sy+'px';
+    const sel=r.key===selKey;
+    lcCtx.beginPath(); lcCtx.moveTo(sx,sy); lcCtx.lineTo(sx+4,sy);
+    lcCtx.strokeStyle=sel?'rgba(58,184,255,0.7)':'rgba(58,184,255,0.15)';
+    lcCtx.lineWidth=sel?1.5:1; lcCtx.stroke();
+    lcCtx.beginPath(); lcCtx.arc(sx,sy,sel?3:1.5,0,Math.PI*2);
+    lcCtx.fillStyle=sel?'#3ab8ff':'rgba(58,184,255,0.4)'; lcCtx.fill();
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// LEFT SIDEBAR
+// ══════════════════════════════════════════════════════════
+const rlist=document.getElementById('rlist');
+REGIONS.forEach(r=>{
+  const el=document.createElement('div');el.className='ri';el.dataset.key=r.key;
+  el.innerHTML=`<div class="rdot" style="background:${r.color}"></div>
+    <div style="flex:1"><div class="rname">${r.name}</div>
+    <div class="r-bar"><div class="r-bar-fill" id="rb-${r.key}" style="width:${Math.floor(30+Math.random()*65)}%"></div></div></div>
+    <div class="rpct" id="rp-${r.key}">${Math.floor(30+Math.random()*65)}%</div>`;
+  el.addEventListener('click',()=>selectRegion(r.key)); rlist.appendChild(el);
+});
+
+// MINI CHARTS
+['act','o2','fa','hz','cbf'].forEach(id=>{
+  const el=document.getElementById('mch-'+id);if(!el)return;
+  for(let i=0;i<16;i++){const b=document.createElement('div');b.className='mbar';b.style.height=(Math.random()*20+4)+'px';el.appendChild(b);}
+});
+const agridEl=document.getElementById('agrid');
+REGIONS.slice(0,8).forEach((_,ri)=>{
+  const row=document.createElement('div');row.style.display='flex';
+  for(let c=0;c<13;c++){const cell=document.createElement('div');cell.className='acell';cell.id=`ac-${ri}-${c}`;row.appendChild(cell);}
+  agridEl.appendChild(row);
+});
+
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+let autoRot=true,viewMode='anatomy',selKey=null,wireMode=false,scanPct=0;
+let health=88,actLevel=74;
+const hist={act:[],o2:[],fa:[],hz:[],cbf:[]};
+Object.keys(hist).forEach(k=>{for(let i=0;i<16;i++)hist[k].push(Math.random());});
+
+// ══════════════════════════════════════════════════════════
+// BRAIN STATE SWITCH
+// ══════════════════════════════════════════════════════════
+function setBrainState(id){
+  curState=id;
+  const st=STATES[id];
+  scene.background=new THREE.Color(st.bg);
+  const badge=document.getElementById('state-badge');
+  badge.textContent=st.name;
+  badge.style.background=st.badge; badge.style.border=`1px solid ${st.border}`;
+  badge.style.color=st.color;
+  document.getElementById('hz-label').textContent=`Гц · ${st.bands}`;
+  document.getElementById('eeg-band').textContent=st.bands;
+  document.getElementById('s-state').textContent='СОСТОЯНИЕ: '+st.name;
+  ['bAwake','bSleep','bMedit','bStress'].forEach(b=>document.getElementById(b).classList.remove('on'));
+  document.getElementById('b'+id.charAt(0).toUpperCase()+id.slice(1)).classList.add('on');
+}
+['bAwake','bSleep','bMedit','bStress'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',()=>{
+    const map={bAwake:'awake',bSleep:'sleep',bMedit:'medit',bStress:'stress'};
+    setBrainState(map[id]);
+  });
+});
+
+// ══════════════════════════════════════════════════════════
+// SELECT / VIEW
+// ══════════════════════════════════════════════════════════
+function selectRegion(key){
+  if(selKey===key){selKey=null;document.getElementById('ip').classList.remove('vis');
+    document.querySelectorAll('.ri').forEach(el=>el.classList.remove('sel'));
+    Object.values(lblEls).forEach(el=>el.classList.remove('sel'));return;}
+  selKey=key;
+  const r=REGIONS.find(r=>r.key===key);if(!r)return;
+  document.querySelectorAll('.ri').forEach(el=>el.classList.toggle('sel',el.dataset.key===key));
+  Object.entries(lblEls).forEach(([k,el])=>el.classList.toggle('sel',k===key));
+  const act=Math.floor(35+Math.random()*60);
+  document.getElementById('ip-name').textContent=r.name;
+  document.getElementById('ip-body').innerHTML=`
+    <div class="ipr">Зоны Бродмана <span>${r.ba}</span></div>
+    <div class="ipr">Роль <span>${r.role}</span></div>
+    <div class="ipr">Функция <span>${r.fn}</span></div>
+    <div class="ipr">Активность <span>${act}%</span></div>
+    <div class="ipr">Нейронов <span>~${(Math.random()*6+0.8).toFixed(1)}B</span></div>
+    <div class="ipr">Синаптич. связей <span>${Math.floor(Math.random()*250+80)}M</span></div>
+    <div class="ipr">Перфузия (ЦБК) <span>${Math.floor(Math.random()*30+40)} мл/мин</span></div>
+    <div class="ipr">Латентность <span>${Math.floor(Math.random()*20+8)} мс</span></div>
+  `;
+  document.getElementById('ip-act-fill').style.width=act+'%';
+  document.getElementById('ip').classList.add('vis');
+  document.querySelector(`.ri[data-key="${key}"]`)?.scrollIntoView({block:'nearest'});
+}
+
+function setViewMode(mode){
+  viewMode=mode;
+  if(mode==='anatomy'){
+    matL.emissive.setHex(0);matR.emissive.setHex(0);
+    matL.emissiveIntensity=matR.emissiveIntensity=0;
+    tractGrp.visible=false;pMesh.visible=false;
+  } else if(mode==='functional'){
+    tractGrp.visible=false;pMesh.visible=false;
+  } else if(mode==='connectivity'){
+    tractGrp.visible=true;pMesh.visible=true;
+    matL.emissive.setHex(0);matR.emissive.setHex(0);
+    matL.emissiveIntensity=matR.emissiveIntensity=0;
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// BUTTONS
+// ══════════════════════════════════════════════════════════
+const mbtns=['bAnat','bFunc','bConn'];
+function setMBtn(id,m){mbtns.forEach(b=>document.getElementById(b).classList.remove('on'));document.getElementById(id).classList.add('on');setViewMode(m);}
+document.getElementById('bAnat').addEventListener('click',()=>setMBtn('bAnat','anatomy'));
+document.getElementById('bFunc').addEventListener('click',()=>setMBtn('bFunc','functional'));
+document.getElementById('bConn').addEventListener('click',()=>setMBtn('bConn','connectivity'));
+document.getElementById('bLbl').addEventListener('click',function(){labelsOn=!labelsOn;this.classList.toggle('on',labelsOn);});
+document.getElementById('bRot').addEventListener('click',function(){autoRot=!autoRot;this.classList.toggle('on',autoRot);});
+document.getElementById('bWire').addEventListener('click',function(){
+  wireMode=!wireMode;this.classList.toggle('on',wireMode);
+  [matL,matR,cerM.material].forEach(m=>m.wireframe=wireMode);
+});
+function toggleClip(mode){
+  clipMode=clipMode===mode?'none':mode;
+  ['bSag','bAxl','bCor'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  if(clipMode!=='none') document.getElementById('b'+mode.charAt(0).toUpperCase()+mode.slice(0,3).slice(0,1)+'ag'in{Sag:1}?'bSag':mode==='axial'?'bAxl':'bCor').classList.add('on');
+  applyClip();
+}
+document.getElementById('bSag').addEventListener('click',()=>{clipMode=clipMode==='sagittal'?'none':'sagittal';['bSag','bAxl','bCor'].forEach(id=>document.getElementById(id).classList.remove('on'));if(clipMode!=='none')document.getElementById('bSag').classList.add('on');applyClip();});
+document.getElementById('bAxl').addEventListener('click',()=>{clipMode=clipMode==='axial'?'none':'axial';['bSag','bAxl','bCor'].forEach(id=>document.getElementById(id).classList.remove('on'));if(clipMode!=='none')document.getElementById('bAxl').classList.add('on');applyClip();});
+document.getElementById('bCor').addEventListener('click',()=>{clipMode=clipMode==='coronal'?'none':'coronal';['bSag','bAxl','bCor'].forEach(id=>document.getElementById(id).classList.remove('on'));if(clipMode!=='none')document.getElementById('bCor').classList.add('on');applyClip();});
+document.getElementById('iclose').addEventListener('click',()=>{if(selKey)selectRegion(selKey);});
+
+// ══════════════════════════════════════════════════════════
+// CAMERA
+// ══════════════════════════════════════════════════════════
+const mouse=new THREE.Vector2();
+let rotY=0,rotX=0.1,zoom=1,mDown=false,prevX=0,prevY=0,dSX=0,dSY=0;
+wrap.addEventListener('mousedown',e=>{mDown=true;prevX=dSX=e.clientX;prevY=dSY=e.clientY;});
+wrap.addEventListener('mouseup',e=>{const drag=Math.abs(e.clientX-dSX)>5||Math.abs(e.clientY-dSY)>5;mDown=false;if(!drag)doClick(e);});
+wrap.addEventListener('mousemove',e=>{if(mDown){rotY+=(e.clientX-prevX)*.011;rotX+=(e.clientY-prevY)*.011;rotX=Math.max(-.75,Math.min(.75,rotX));prevX=e.clientX;prevY=e.clientY;}doHover(e);});
+wrap.addEventListener('wheel',e=>{e.preventDefault();zoom*=e.deltaY>0?.92:1.08;zoom=Math.max(.35,Math.min(3.2,zoom));camera.position.z=5.8/zoom;},{passive:false});
+wrap.addEventListener('mouseleave',hideTooltip);
+
+// RAYCAST
+const raycaster=new THREE.Raycaster();
+const tt=document.getElementById('tt');
+function gm(e){const r=canvas.getBoundingClientRect();mouse.x=((e.clientX-r.left)/r.width)*2-1;mouse.y=-((e.clientY-r.top)/r.height)*2+1;}
+function showTooltip(x,y,txt){tt.style.left=(x+12)+'px';tt.style.top=(y-8)+'px';tt.textContent=txt;tt.style.display='block';}
+function hideTooltip(){tt.style.display='none';}
+function doHover(e){gm(e);raycaster.setFromCamera(mouse,camera);
+  const hits=raycaster.intersectObjects(Object.values(regionMsh));
+  if(hits.length>0&&hits[0].object.userData.key){const r=hits[0].object.userData;showTooltip(e.clientX,e.clientY,`${r.name}  ·  ${r.ba!=='—'?'BA'+r.ba.split(',')[0]+'  ·  ':''}${r.fn}`);canvas.style.cursor='pointer';}
+  else{hideTooltip();canvas.style.cursor='grab';}
+}
+function doClick(e){gm(e);raycaster.setFromCamera(mouse,camera);const hits=raycaster.intersectObjects(Object.values(regionMsh));if(hits.length>0)selectRegion(hits[0].object.userData.key);}
+
+// ══════════════════════════════════════════════════════════
+// EEG CANVAS
+// ══════════════════════════════════════════════════════════
+const eegEl=document.getElementById('eeg'),eegCtx=eegEl.getContext('2d');
+let eegOff=0;
+function drawEEG(){
+  const w=eegEl.width||170,h=eegEl.height||54;
+  eegCtx.clearRect(0,0,w,h);
+  const st=STATES[curState];
+  // Grid
+  eegCtx.strokeStyle='rgba(50,180,255,0.06)';eegCtx.lineWidth=1;
+  for(let y=0;y<=h;y+=h/3){eegCtx.beginPath();eegCtx.moveTo(0,y);eegCtx.lineTo(w,y);eegCtx.stroke();}
+  // Wave
+  eegCtx.strokeStyle=st.color;eegCtx.lineWidth=1.4;
+  eegCtx.shadowColor=st.color;eegCtx.shadowBlur=5;
+  eegCtx.beginPath();
+  const amp=st.eegAmp;
+  for(let x=0;x<w;x++){
+    const t=(x+eegOff)/w*Math.PI*20;
+    const y2=h/2+Math.sin(t*st.eegHz*0.5)*10*amp+Math.sin(t*st.eegHz*1.2)*4.5*amp+Math.sin(t*st.eegHz*2.3)*2*amp+(vn(x/25,eegOff/50,0)*2-1)*2.5*amp;
+    x===0?eegCtx.moveTo(x,y2):eegCtx.lineTo(x,y2);
+  }
+  eegCtx.stroke();eegCtx.shadowBlur=0;
+  eegOff+=2.5;
+}
+
+// ══════════════════════════════════════════════════════════
+// SIMULATION
+// ══════════════════════════════════════════════════════════
+function updateMetrics(){
+  const st=STATES[curState];
+  health=Math.max(62,Math.min(100,health+(Math.random()-.515)*.9));
+  actLevel=Math.max(st.actBase*60,Math.min(st.actBase*110,actLevel+(Math.random()-.5)*2.5));
+  const o2=2.0+actLevel/80,hz=st.eegHz+Math.random()*2-1,fa=health*.94+Math.random()*4,cbf=45+actLevel*.2+Math.random()*5;
+  document.getElementById('mv-act').textContent=Math.round(actLevel);
+  document.getElementById('mv-o2').textContent=o2.toFixed(1);
+  document.getElementById('mv-hz').textContent=Math.round(hz);
+  document.getElementById('mv-fa').textContent=Math.round(fa);
+  document.getElementById('mv-cbf').textContent=Math.round(cbf);
+  document.getElementById('hv-syn').textContent=Math.floor(90+actLevel*12)+'T';
+  document.getElementById('hv-act').textContent=Math.round(actLevel)+'%';
+  document.getElementById('hv-hlth').textContent=Math.round(health)+'%';
+  hist.act.push(actLevel/100);hist.act.shift();hist.o2.push((o2-2)/2.5);hist.o2.shift();
+  hist.fa.push(fa/100);hist.fa.shift();hist.hz.push(hz/30);hist.hz.shift();hist.cbf.push(cbf/70);hist.cbf.shift();
+  ['act','o2','fa','hz','cbf'].forEach(id=>{
+    const bars=document.getElementById('mch-'+id)?.children;
+    if(bars)hist[id].forEach((v,i)=>{if(bars[i])bars[i].style.height=Math.max(2,v*22)+'px';});
+  });
+  REGIONS.forEach(r=>{
+    const v=Math.floor(Math.max(10,Math.min(95,(STATES[curState].actBase*100)+(Math.random()*40-20))));
+    document.getElementById('rp-'+r.key)?.setAttribute('data-val',v);
+    const el=document.getElementById('rp-'+r.key);if(el)el.textContent=v+'%';
+    const bar=document.getElementById('rb-'+r.key);if(bar)bar.style.width=v+'%';
+    regionAct[r.key]=v/100;
+  });
+  for(let ri=0;ri<8;ri++)for(let c=0;c<13;c++){const cell=document.getElementById(`ac-${ri}-${c}`);if(cell){const v=Math.random()*STATES[curState].actBase;cell.style.background=`rgba(50,184,255,${(0.05+v*0.85).toFixed(2)})`;}}
+  scanPct=(scanPct+0.7)%100;
+  document.getElementById('spbar').style.width=scanPct+'%';
+  document.getElementById('s-pct').textContent=Math.floor(scanPct)+'%';
+  document.getElementById('s-clk').textContent=new Date().toTimeString().slice(0,8);
+}
+setInterval(updateMetrics,1000); updateMetrics();
+
+// ══════════════════════════════════════════════════════════
+// ANIMATE
+// ══════════════════════════════════════════════════════════
+let fpsT=performance.now(),fpsN=0;
+function animate(t){
+  requestAnimationFrame(animate);
+  fpsN++;const now=performance.now();
+  if(now-fpsT>600){document.getElementById('fps').textContent=Math.round(fpsN*1000/(now-fpsT));fpsT=now;fpsN=0;}
+  if(autoRot)rotY+=0.0035;
+  brainGrp.rotation.y=rotY; brainGrp.rotation.x=rotX;
+
+  // Neural particles
+  if(tractCurves.length>0&&pMesh.visible){
+    const pa=pGeo.attributes.position.array;
+    pData.forEach((pd,i)=>{pd.t+=pd.spd;if(pd.t>1)pd.t=0;if(pd.ci<tractCurves.length){const pt=tractCurves[pd.ci].getPoint(pd.t);pa[i*3]=pt.x;pa[i*3+1]=pt.y;pa[i*3+2]=pt.z;}});
+    pGeo.attributes.position.needsUpdate=true;
+  }
+
+  // Region activity glow
+  const st=STATES[curState];
+  const phase=Math.sin(now*.0009);
+  REGIONS.forEach(r=>{
+    const m=regionMsh[r.key];if(!m)return;
+    const act=regionAct[r.key]||0.4;
+    let op=0;
+    if(viewMode==='functional') op=act*st.actBase*0.6+phase*0.05*act;
+    else if(viewMode==='connectivity') op=0.08+act*0.05;
+    else if(r.key===selKey) op=0.28+Math.sin(now*.003)*0.1;
+    m.material.opacity=op;
+  });
+
+  // Brain emissive based on state activity
+  const em=st.actBase*0.04;
+  matL.emissive.setRGB(em*0.8,em*0.3,em*0.2);matR.emissive.setRGB(em*0.8,em*0.3,em*0.2);
+  matL.emissiveIntensity=matR.emissiveIntensity=1;
+
+  drawEEG();
+  renderer.render(scene,camera);
+  updateLabels();
+}
+animate(0);
+setBrainState('awake');
+setViewMode('anatomy');
+</script>
+</body>
+</html>

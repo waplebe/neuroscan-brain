@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bio-Monitoring Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #1a1d22;
+            --panel-bg: #252a32;
+            --panel-shadow: #0d0f12;
+            --glow-green: #00ff88;
+            --glow-teal: #00d4aa;
+            --glow-cyan: #00c8ff;
+            --glow-yellow: #ffd54f;
+            --text-light: #e8ecf0;
+            --text-dim: #8a9aab;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: radial-gradient(ellipse at 50% 50%, rgba(0,255,136,0.03) 0%, transparent 70%);
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 180px 1fr 200px;
+            grid-template-rows: auto 1fr auto;
+            gap: 16px;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        /* Neumorphic panel */
+        .panel {
+            background: linear-gradient(145deg, #2a3038, #1e2329);
+            border-radius: 16px;
+            padding: 14px;
+            box-shadow: 
+                6px 6px 12px var(--panel-shadow),
+                -2px -2px 8px rgba(60, 70, 80, 0.3),
+                inset 0 1px 0 rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.04);
+            position: relative;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 16px;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(0,255,136,0.1), transparent, rgba(0,200,255,0.05));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        .glow-text {
+            color: var(--glow-green);
+            text-shadow: 0 0 10px rgba(0,255,136,0.5);
+        }
+
+        /* Left column */
+        .left-col {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .stat-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--glow-green);
+        }
+
+        .stat-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--glow-green);
+            box-shadow: 0 0 12px var(--glow-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .icon-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #2a3038, #1e2329);
+            border: 1px solid rgba(0,255,136,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0,255,136,0.3);
+            transition: all 0.2s;
+        }
+
+        .icon-btn:hover {
+            box-shadow: 0 0 25px rgba(0,255,136,0.6);
+        }
+
+        .icon-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--glow-green);
+        }
+
+        .bio-shape {
+            width: 100%;
+            height: 60px;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0,255,136,0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(0,200,255,0.2) 0%, transparent 50%);
+            border-radius: 8px;
+        }
+
+        .circular-stat {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .circular-stat .value {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--glow-green);
+        }
+
+        /* Center area */
+        .center-area {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: relative;
+        }
+
+        .main-visual {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+        }
+
+        .tree-container {
+            position: relative;
+            width: 380px;
+            height: 380px;
+        }
+
+        .tree-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid rgba(0,255,136,0.2);
+            box-shadow: 0 0 40px rgba(0,255,136,0.1);
+        }
+
+        .tree-ring::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            border-radius: 50%;
+            background: radial-gradient(circle, transparent 30%, rgba(0,255,136,0.05) 100%);
+        }
+
+        .ring-node {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--glow-green);
+            box-shadow: 0 0 10px var(--glow-green);
+        }
+
+        .ring-node.yellow {
+            background: var(--glow-yellow);
+            box-shadow: 0 0 10px var(--glow-yellow);
+        }
+
+        .ring-node.cyan {
+            background: var(--glow-cyan);
+            box-shadow: 0 0 10px var(--glow-cyan);
+        }
+
+        .tree-svg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 8px rgba(0,255,136,0.4));
+        }
+
+        .tree-label {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            letter-spacing: 4px;
+            color: rgba(0,255,136,0.6);
+        }
+
+        .tree-date {
+            position: absolute;
+            top: 38px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: var(--glow-yellow);
+            opacity: 0.8;
+        }
+
+        .node-dot {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--glow-green);
+            box-shadow: 0 0 12px var(--glow-green);
+        }
+
+        /* Bottom panels */
+        .bottom-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 80px;
+            gap: 4px;
+        }
+
+        .bar {
+            flex: 1;
+            min-width: 8px;
+            background: linear-gradient(to top, rgba(0,255,136,0.3), var(--glow-green));
+            border-radius: 4px 4px 0 0;
+            box-shadow: 0 0 10px rgba(0,255,136,0.3);
+        }
+
+        .line-chart {
+            height: 80px;
+            position: relative;
+        }
+
+        .line-chart svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .grid-panel {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 4px;
+            height: 80px;
+        }
+
+        .grid-cell {
+            background: rgba(0,255,136,0.08);
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .grid-cell.active {
+            background: rgba(0,255,136,0.4);
+            box-shadow: 0 0 8px rgba(0,255,136,0.3);
+        }
+
+        /* Right column */
+        .right-col {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .right-indicators {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .right-indicators .icon-btn {
+            align-self: flex-end;
+        }
+
+        .right-date {
+            text-align: right;
+            font-size: 14px;
+            color: var(--text-dim);
+        }
+
+        .chart-tall {
+            height: 120px;
+        }
+
+        .chart-tall .bar {
+            min-height: 4px;
+        }
+
+        /* 3D Sphere */
+        .sphere-container {
+            perspective: 500px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 140px;
+        }
+
+        .sphere {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: 
+                radial-gradient(circle at 30% 30%, rgba(0,255,136,0.4),
+                rgba(0,200,255,0.2) 40%,
+                rgba(0,100,150,0.3) 100%);
+            box-shadow: 
+                0 0 40px rgba(0,255,136,0.4),
+                inset -10px -10px 20px rgba(0,0,0,0.3),
+                inset 10px 10px 20px rgba(255,255,255,0.05);
+            animation: sphere-rotate 8s linear infinite;
+        }
+
+        @keyframes sphere-rotate {
+            from { transform: rotateY(0deg) rotateX(15deg); }
+            to { transform: rotateY(360deg) rotateX(15deg); }
+        }
+
+        /* World map */
+        .map-panel {
+            height: 100px;
+            position: relative;
+        }
+
+        .map-panel svg {
+            width: 100%;
+            height: 100%;
+            opacity: 0.9;
+        }
+
+        .map-region {
+            fill: rgba(0,255,136,0.15);
+            stroke: rgba(0,255,136,0.3);
+            stroke-width: 0.5;
+        }
+
+        /* Log panel */
+        .log-panel {
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .log-line {
+            font-size: 10px;
+            color: var(--text-dim);
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .log-line .highlight {
+            color: var(--glow-cyan);
+        }
+
+        /* Vertical bar chart left */
+        .vertical-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 6px;
+            height: 100px;
+            padding: 5px 0;
+        }
+
+        .vertical-chart .bar {
+            flex: 1;
+            min-height: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Left column -->
+        <div class="left-col">
+            <div class="panel stat-box">
+                <div class="stat-indicator"></div>
+                <span class="stat-value">1301</span>
+            </div>
+
+            <div class="panel icon-buttons">
+                <div class="icon-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="4"/></svg>
+                </div>
+                <div class="icon-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                </div>
+                <div class="icon-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16v-5h4v5h4v-8h4"/></svg>
+                </div>
+            </div>
+
+            <div class="panel bio-shape"></div>
+
+            <div class="panel circular-stat">
+                <svg width="40" height="40" viewBox="0 0 40 40">
+                    <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(0,255,136,0.2)" stroke-width="3"/>
+                    <circle cx="20" cy="20" r="16" fill="none" stroke="var(--glow-green)" stroke-width="3" 
+                        stroke-dasharray="60 45" stroke-linecap="round" transform="rotate(-90 20 20)"/>
+                </svg>
+                <span class="value">35</span>
+            </div>
+
+            <div class="panel">
+                <div class="vertical-chart" id="leftChart"></div>
+            </div>
+
+            <div class="panel log-panel">
+                <div class="log-line"><span class="highlight">[12:34:01]</span> SYS INIT COMPLETE</div>
+                <div class="log-line"><span class="highlight">[12:34:02]</span> CORE SYNC OK</div>
+                <div class="log-line"><span class="highlight">[12:34:03]</span> NODE 0x7F ACTIVE</div>
+                <div class="log-line"><span class="highlight">[12:34:04]</span> BIO SAMPLE #421</div>
+                <div class="log-line"><span class="highlight">[12:34:05]</span> CHAIN VERIFIED</div>
+            </div>
+
+            <div class="panel map-panel">
+                <svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="200" cy="100" rx="195" ry="95" fill="none" stroke="rgba(0,255,136,0.1)" stroke-width="1"/>
+                    <path class="map-region" d="M100,50 Q150,30 200,50 Q250,70 300,50 L320,80 L300,120 L200,100 L100,120 Z"/>
+                    <path class="map-region" d="M50,80 Q80,60 120,70 L140,90 L120,130 L80,120 Z"/>
+                    <path class="map-region" d="M250,70 Q280,50 320,70 L340,100 L320,140 L280,130 Z"/>
+                    <path class="map-region" d="M150,100 Q180,90 220,100 L240,140 L200,150 L160,140 Z"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Center area -->
+        <div class="center-area">
+            <div class="panel main-visual">
+                <div class="tree-container">
+                    <div class="tree-ring"></div>
+                    <span class="tree-label">CHAEMMEWEAIMOBAMCE</span>
+                    <span class="tree-date">A.D. 4226</span>
+                    <svg class="tree-svg" viewBox="0 0 400 400">
+                        <defs>
+                            <linearGradient id="treeGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#00d4aa"/>
+                                <stop offset="50%" style="stop-color:#00ff88"/>
+                                <stop offset="100%" style="stop-color:#ffd54f"/>
+                            </linearGradient>
+                            <radialGradient id="nodeGlow">
+                                <stop offset="0%" style="stop-color:#ffd54f"/>
+                                <stop offset="100%" style="stop-color:#00ff88"/>
+                            </radialGradient>
+                            <filter id="glow">
+                                <feGaussianBlur stdDeviation="2"/>
+                                <feMerge>
+                                    <feMergeNode/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                        </defs>
+                        <!-- Organic tree - main trunk and roots -->
+                        <path d="M200,340 C180,320 160,280 170,240 C180,200 200,180 200,140 C200,100 180,70 200,50 C220,40 250,55 250,90 C250,130 230,150 220,190 C210,230 220,270 200,300 C190,320 200,340 200,340" 
+                            fill="none" stroke="url(#treeGrad)" stroke-width="4" opacity="0.95" filter="url(#glow)"/>
+                        <path d="M200,300 C160,290 130,270 120,240 C110,210 130,180 160,200 C190,220 200,260 200,300" 
+                            fill="none" stroke="#00d4aa" stroke-width="2.5" opacity="0.8" filter="url(#glow)"/>
+                        <path d="M200,300 C240,290 270,260 280,230 C290,200 270,170 240,190 C210,210 200,250 200,300" 
+                            fill="none" stroke="#00d4aa" stroke-width="2.5" opacity="0.8" filter="url(#glow)"/>
+                        <path d="M200,200 C170,190 150,160 160,130 C170,100 200,90 220,110 C240,130 230,170 200,200" 
+                            fill="none" stroke="#00ff88" stroke-width="2" opacity="0.85" filter="url(#glow)"/>
+                        <path d="M200,200 C230,190 250,160 240,130 C230,100 200,90 180,110 C160,130 170,170 200,200" 
+                            fill="none" stroke="#00ff88" stroke-width="2" opacity="0.85" filter="url(#glow)"/>
+                        <!-- Network nodes - bioluminescent -->
+                        <circle cx="200" cy="55" r="8" fill="url(#nodeGlow)" filter="url(#glow)"/>
+                        <circle cx="250" cy="95" r="6" fill="#00ff88" filter="url(#glow)"/>
+                        <circle cx="170" cy="140" r="5" fill="#ffd54f" filter="url(#glow)"/>
+                        <circle cx="230" cy="160" r="5" fill="#00c8ff" filter="url(#glow)"/>
+                        <circle cx="120" cy="240" r="5" fill="#00d4aa" filter="url(#glow)"/>
+                        <circle cx="280" cy="230" r="5" fill="#00ff88" filter="url(#glow)"/>
+                        <circle cx="200" cy="280" r="7" fill="url(#nodeGlow)" filter="url(#glow)"/>
+                    </svg>
+                    <!-- Floating nodes around ring -->
+                    <div class="ring-node" style="top:8%;left:50%;transform:translateX(-50%);"></div>
+                    <div class="ring-node yellow" style="top:15%;left:75%;"></div>
+                    <div class="ring-node" style="top:35%;right:12%;"></div>
+                    <div class="ring-node cyan" style="bottom:35%;right:12%;"></div>
+                    <div class="ring-node yellow" style="bottom:15%;left:75%;"></div>
+                    <div class="ring-node" style="bottom:8%;left:50%;transform:translateX(-50%);"></div>
+                    <div class="ring-node" style="top:35%;left:12%;"></div>
+                    <div class="ring-node cyan" style="bottom:35%;left:12%;"></div>
+                    <div class="ring-node yellow" style="top:15%;left:25%;"></div>
+                </div>
+            </div>
+
+            <div class="bottom-row">
+                <div class="panel">
+                    <div class="bar-chart" id="barChart1"></div>
+                </div>
+                <div class="panel">
+                    <div class="line-chart">
+                        <svg viewBox="0 0 200 80" preserveAspectRatio="none">
+                            <polyline points="0,60 30,50 60,55 90,35 120,45 150,25 180,40 200,30" 
+                                fill="none" stroke="var(--glow-green)" stroke-width="2" opacity="0.8"/>
+                            <circle cx="180" cy="40" r="4" fill="var(--glow-green)"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="grid-panel" id="gridPanel"></div>
+                </div>
+                <div class="panel">
+                    <div class="bar-chart" id="barChart2"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right column -->
+        <div class="right-col">
+            <div class="panel right-indicators">
+                <span class="right-date">3/1</span>
+                <div class="icon-btn"></div>
+                <div class="icon-btn"></div>
+                <div class="icon-btn"></div>
+            </div>
+
+            <div class="panel chart-tall">
+                <div class="vertical-chart" id="rightChart"></div>
+            </div>
+
+            <div class="panel sphere-container">
+                <div class="sphere"></div>
+            </div>
+
+            <div class="panel">
+                <div class="stat-box">
+                    <span class="stat-value">5 271</span>
+                </div>
+            </div>
+
+            <div class="panel log-panel">
+                <div class="log-line"><span class="highlight">STATUS:</span> NOMINAL</div>
+                <div class="log-line"><span class="highlight">TEMP:</span> 22.4°C</div>
+                <div class="log-line"><span class="highlight">HUM:</span> 45%</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Bar chart data
+        const barHeights1 = [65, 45, 80, 55, 70, 40, 85, 60, 75, 50];
+        const barHeights2 = [50, 70, 40, 80, 55, 65, 45, 75];
+        const rightChartHeights = [40, 65, 50, 80, 45, 70, 55, 90, 60, 75, 50, 85];
+        const leftChartHeights = [70, 50, 85, 60, 75, 45, 65];
+
+        function createBarChart(containerId, heights) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            heights.forEach(h => {
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                bar.style.height = h + '%';
+                container.appendChild(bar);
+            });
+        }
+
+        function createGridPanel() {
+            const grid = document.getElementById('gridPanel');
+            for (let i = 0; i < 28; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell' + (Math.random() > 0.6 ? ' active' : '');
+                grid.appendChild(cell);
+            }
+        }
+
+        createBarChart('barChart1', barHeights1);
+        createBarChart('barChart2', barHeights2);
+        createBarChart('rightChart', rightChartHeights);
+        createBarChart('leftChart', leftChartHeights);
+        createGridPanel();
+    </script>
+</body>
+</html>
